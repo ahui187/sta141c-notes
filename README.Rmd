@@ -142,10 +142,11 @@ The grading criteria are correctness, code quality, and communication. The follo
 
 The report does the following:
 
-solves all the questions contained in the prompt
-makes conclusions that are supported by evidence in the data
-discusses efficiency and limitations of the computation
-cites any sources used
+- solves all the questions contained in the prompt
+- makes conclusions that are supported by evidence in the data
+- discusses efficiency and limitations of the computation
+- cites any sources used
+
 The attached code runs without modification.
 
 #### Code Quality
