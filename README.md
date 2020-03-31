@@ -56,6 +56,7 @@
 | ---------------------------------- |
 | Introduction                       |
 | Functional programming             |
+| Object Oriental programming        |
 | Debugging and profiling            |
 | Writing C and C++ extensions       |
 | Writing an R package               |
