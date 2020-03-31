@@ -62,6 +62,7 @@
 | Parallel & Distributed Computing   |
 | Async programming                  |
 | Bootstrap and BLB                  |
+| Google Sheet and Big Query         |
 | Interoperate with Python and Julia |
 | Deep learning in R                 |
 
