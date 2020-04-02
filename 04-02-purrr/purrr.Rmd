@@ -94,6 +94,8 @@ results more clean code.
 
 ```{r}
 5 %>% choose(. - 2)
+5 %>% choose(3)
+choose(5, 3)
 ```
 
 The behavior can be
@@ -109,7 +111,7 @@ list(n = 5, k = 3) %>% {choose(.$n, .$k)}
 
 ## What is functional programming?
 
-> In computer science, functional programming is a programming paradigm—a style of building the structure and elements of computer programs—that treats computation as the evaluation of mathematical functions and avoids changing-state and mutable data.
+> In computer science, functional programming is a programming paradigm—a style of building the structure and elements of computer programs that treats computation as the evaluation of mathematical functions and avoids changing-state and mutable data.
 
 To put is simple, it is a programming style without side effects.
 
@@ -167,6 +169,20 @@ z <- 1
 `<-`(z, 1)
 ```
 
+## R evaluates expression lazily
+
+Related meta programming.
+
+```{r}
+f <- function(x) {
+  substitute(x)
+}
+
+# note abc was not defined `substitute` captures the expression
+f(abc)
+```
+
+
 ## R is also very dynamic
 
 We could change the body of previously defined functions
@@ -196,6 +212,7 @@ foo <- function(x) {
 
 foo(3)
 ```
+
 `foo(3)` returns 3 because `addy` was defined in the global environment. But we could do something like this
 
 ```{r}
@@ -225,6 +242,7 @@ df <- tibble(
 df <- tibble(!!!rerun(4, rnorm(10)) %>% set_names(letters[seq_len(length(.))]))
 ```
 
+
 A naive way to do so
 ```{r}
 median(df$a)
@@ -237,7 +255,7 @@ median(df$d)
 # a base R for loop
 output <- vector("double", ncol(df)) # 1. output
 for (i in seq_along(df)) { # 2. sequence
-  output[[i]] <- median(df[[i]]) # 3. body
+  output[i] <- median(df[[i]]) # 3. body
 }
 output
 ```
@@ -292,7 +310,7 @@ fac(1:5)
 ```{r}
 1:5 %>% map(fac)
 ```
-is almost equivalent to `c(fac(1), fac(2), fac(3), fac(4), fac(5))`
+is almost equivalent to `list(fac(1), fac(2), fac(3), fac(4), fac(5))`
 
 
 ### Passing additional arguments
@@ -325,10 +343,17 @@ df %>% map(~ .^2)
 
 The `map` function also provide some shortcuts to extract elements from lists or vectors.
 
+
+```{r}
+# extract first elelment from each column
+df %>% map(1)
+```
+
+
 ```{r}
 roster <- list(
-  list(name = "Peter", id = 1231, grades = list(STA141A = "A", STA141B = "A")),
-  list(name = "Mary",  id = 4213, grades = list(STA141A = "B", STA141B = "B"))
+  list(name = "Peter", id = 1231, grades = list(STA141A = "A", STA141B = "A"), hobbies = c("Math", "Stat")),
+  list(name = "Mary",  id = 4213, grades = list(STA141A = "B", STA141B = "B"), hobbies = c("Math", "Chem"))
 )
 ```
 
@@ -339,6 +364,9 @@ roster %>% map("name")
 ## Multi-level extraction
 ```{r}
 roster %>% map(list("grades", "STA141B"))
+```
+```{r}
+roster %>% map(list("hobbies", 1))
 ```
 
 
@@ -363,15 +391,29 @@ df %>% map_dbl(mean)
 1:5 %>% map_lgl(~ . == 2L)
 ```
 
+```{r}
+roster %>% map_chr("name")
+```
+
 
 ## Enumerating over the input
 
+`imap` enumerates over the input
+
 ```{r}
-eleven_to_twenty <- c(11, 12, 13)
+a <- c(11, 12, 13)
+a %>% imap_dbl(function(v, i) v)
+```
+```{r}
+a %>% imap_dbl(function(v, i) i)
+```
+
+
+```{r}
 b <- c(4, 5, 6)
-eleven_to_twenty %>% imap_dbl(function(v, i) v + b[i])
+a %>% imap_dbl(function(v, i) v + b[i])
 # equivalently
-eleven_to_twenty %>% imap_dbl(~ .x + b[.y])
+a %>% imap_dbl(~ .x + b[.y])
 ```
 
 
@@ -396,8 +438,6 @@ is_even <- function(x) x %% 2 == 0
 eleven_to_twenty %>% keep(is_even)
 # or equivalently
 eleven_to_twenty %>% keep(~ . %% 2 == 0)
-
-a_to_e %>% keep(~ "eleven_to_twenty" %in% .)
 ```
 
 ```{r}
@@ -408,6 +448,7 @@ eleven_to_twenty %>% discard(is_even)
 
 ## Summerizing
 
+
 ```{r}
 # is every element in `eleven_to_twenty` even?
 eleven_to_twenty %>% every(is_even) # more efficient then all(is_even(eleven_to_twenty))
@@ -416,6 +457,7 @@ eleven_to_twenty %>% some(is_even) # more efficient then any(is_even(eleven_to_t
 
 eleven_to_twenty %>% has_element(12) # 12 is eleven_to_twenty double
 eleven_to_twenty %>% has_element(12L)
+eleven_to_twenty %>% some(~ . == 12)  # maybe a bit robust
 
 # the first even number is
 eleven_to_twenty %>% detect(is_even)
