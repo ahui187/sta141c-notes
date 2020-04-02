@@ -14,33 +14,114 @@ library(tidyverse)
 
 ## Pipe operator
 
-```{r}
-x1 <- 1:5
-x2 <- 2:6
-sqrt(sum((x2 - x1)^2))
+We are going to detour a bit to talk about pipe operator.
+Pipe operator is a powerful way to make your code much cleaner and readible by
 
-(x2 - x1)^2 %>%
-  sum() %>%
-  sqrt()
+- structuring sequences of data operations left-to-right (as opposed to from the inside and out),
+- avoiding nested function calls,
+- minimizing the need for local variables and function definitions, and
+- making it easy to add steps anywhere in the sequence of operations.
+
+The operators pipe their left-hand side values forward into expressions that
+appear on the right-hand side, i.e. one can replace `f(x)` with 
+`x %>% f()`, where `%>%` is the (main) pipe-operator. When coupling 
+several function calls with the pipe-operator, the benefit will become
+more apparent. Consider this pseudo example:
+
+```{r, eval = FALSE}
+raw_data <- read.csv("/path/to/data/file.csv")
+sub_data <- subset(raw_data, variable_a > x)
+new_data <- transform(sub_data, variable_c = variable_a / variable_b)
+the_data <- head(new_data, 100)
+```
+However, the local variables are really not necessary, so one liner could be
+
+```{r, eval = FALSE}
+the_data <- head(
+  transform(
+    subset(
+      read.csv("/path/to/data/file.csv"), 
+    variable_a > x), 
+  variable_c = variable_a / variable_b), 
+100)
 ```
 
-```{r}
-# computer the binomial coefficients
-n <- 5
-x <- 0:5
-choose(n, x)
-n %>% choose(x)
-x %>% choose(n, .)
-list(n = 5, x = 0:5) %>% {
-  choose(.$n, .$x)
-}
+But that is too hard to read and reason. If we use pipe operator,
+
+```{r, eval = FALSE}
+the_data <- read.csv("/path/to/data/file.csv") %>%
+  subset(variable_a > x) %>%
+  transform(variable_c = variable_a / variable_b) %>%
+  head(100)
 ```
+
+Hint: In RStudio, you could use `Ctrl + Shift + M` (or `Cmd + Shift + M`) to insert the pipe operator.
+
+
+### Basic usage
+
+* `x %>% f` or `x %>% f()` is equivalent to `f(x)`
+* `x %>% f(y)` is equivalent to `f(x, y)`
+* `x %>% f %>% g %>% h` is equivalent to `h(g(f(x)))`
+
+
+```{r}
+choose(5, 3)
+5 %>% choose(3)
+```
+
+
+### The argument placeholder
+
+* `x %>% f(y, .)` is equivalent to `f(y, x)`
+* `x %>% f(y, z = .)` is equivalent to `f(y, z = x)`
+
+```{r}
+3 %>% choose(5, .)
+3 %>% choose(5, k = .)
+```
+
+### Re-using the placeholder
+
+It is straightforward to use the placeholder several times
+in a right-hand side expression. However, when the placeholder
+only appears in a nested expressions magrittr will still apply
+the first-argument rule. The reason is that in most cases this
+results more clean code. 
+
+`x %>% f(y = nrow(.), z = ncol(.))` is equivalent to 
+   `f(x, y = nrow(x), z = ncol(x))`
+
+```{r}
+5 %>% choose(. - 2)
+```
+
+The behavior can be
+overruled by enclosing the right-hand side in braces:
+
+`x %>% {f(y = nrow(.), z = ncol(.))}` is equivalent to 
+   `f(y = nrow(x), z = ncol(x))`
+
+```{r}
+list(n = 5, k = 3) %>% {choose(.$n, .$k)}
+```
+
 
 ## What is functional programming?
 
 > In computer science, functional programming is a programming paradigm—a style of building the structure and elements of computer programs—that treats computation as the evaluation of mathematical functions and avoids changing-state and mutable data.
 
 To put is simple, it is a programming style without side effects.
+
+
+```{python, eval = FALSE}
+def f(x):
+  x["a"] = 2
+  return x
+
+x = {"a": 1}
+f(x) == x
+```
 
 ```{r}
 f <- function(x) {
@@ -52,14 +133,6 @@ x <- list(a = 1)
 isTRUE(all.equal(f(x), x))
 ```
 
-```{python}
-def f(x):
-  x["a"] = 2
-  return x
-
-x = {"a": 1}
-f(x) == x
-```
 
 ## Is R a functional language?
 
@@ -92,12 +165,11 @@ a[3]
 
 z <- 1
 `<-`(z, 1)
-
-for (i in 1:10) print(i)
-`for`(i, 1:10, print(i))
 ```
 
-We could even change the body of previously defined functions
+## R is also very dynamic
+
+We could change the body of previously defined functions
 ```{r}
 add <- function(x, y) x + y
 add(3, 1)
@@ -105,6 +177,38 @@ add(3, 1)
 body(add) <- quote(x - y)
 add(3, 1)
 ```
+
+We could also change the frame that a function was defined at.
+
+```{r}
+y <- 2
+addy <- function(x) {
+  x + y
+}
+addy(3)
+```
+
+```{r}
+foo <- function(x) {
+  y <- 3
+  addy(x)
+}
+
+foo(3)
+```
+`foo(3)` returns 3 because `addy` was defined in the global environment. But we could do something like this
+
+```{r}
+foo <- function(x) {
+  y <- 3
+  environment(addy) <- environment()
+  addy(x)
+}
+
+foo(3)
+```
+`environment(addy) <- environment()` changes lexical scope of the function `addy` from global to the calling frame of `foo`.
+
 
 ## Revisit for loops
 
@@ -117,6 +221,8 @@ df <- tibble(
   c = rnorm(10),
   d = rnorm(10)
 )
+# if you want to be fancy
+df <- tibble(!!!rerun(4, rnorm(10)) %>% set_names(letters[seq_len(length(.))]))
 ```
 
 A naive way to do so
@@ -136,89 +242,105 @@ for (i in seq_along(df)) { # 2. sequence
 output
 ```
 
-
-Sometimes we would like to modify existing objects
+### Base R solution
 
 ```{r}
-rescale01 <- function(x) {
-  rng <- range(x, na.rm = TRUE)
-  (x - rng[1]) / (rng[2] - rng[1])
-}
-
-df$a <- rescale01(df$a)
-df$b <- rescale01(df$b)
-df$c <- rescale01(df$c)
-df$d <- rescale01(df$d)
-
-# or simply
-for (i in seq_along(df)) {
-  df[[i]] <- rescale01(df[[i]])
-}
+lapply(df, median)
+sapply(df, median)
 ```
+These functions are great but they are not far less powerful then the next function `map`.
 
-## For loops vs functionals
 
-The pattern of looping over a vector, doing something to each element and saving the results is so common that the `purrr` package provides a function `map` to do it.
+## Using `purrr`
+
+THe `purrr` package (part of `tidyverse`) provides a function `map`.
 
 The basic syntax for `map` is
 ```
 map(ITERATABLE, A_FUNCTION)
 ```
-`ITERATABLE`'s are objects like vectors, list and data frame.
+or
+```
+ITERATABLE %>% map(A_FUNCTION)
+```
+
+* `ITERATABLE`'s are objects like vectors, list and data frame.
+* `A_FUNCTION` is a function, an expression, or a list of element names
+
 
 ```{r}
-map(df, median)
 df %>% map(median)
 ```
 
+Consider the following naive function which computes factorials
 ```{r}
-# the input is not necessary to be a data frame
-c(9, 16, 25) %>% map(sqrt)
-
-fab_norm <- function(p) {
-  x <- c(1, 1, 2, 3, 5, 8)
-  (sum(abs(x)^p))^(1 / p)
+fac <- function(n) {
+  if (n == 1) {
+    return(1L)
+  } else {
+    return(fac(n - 1L) * n)
+  }
 }
+fac(5)
+```
 
-fab_norm(1)
-fab_norm(1.5)
-fab_norm(2)
-# but fab_norm(c(1, 1.5, 2)) does not work
-c(1, 1.5, 2) %>% map(fab_norm)
+Note that `fac` is not vectorized, it means that it doesn't handle vector input.
+```{r, error = TRUE}
+fac(1:5)
 ```
 
 ```{r}
-mean(df$a, trim = 0.5)
-mean(df$b, trim = 0.5)
-mean(df$c, trim = 0.5)
-mean(df$d, trim = 0.5)
+1:5 %>% map(fac)
+```
+is almost equivalent to `c(fac(1), fac(2), fac(3), fac(4), fac(5))`
 
-# pass additional arguments
-map(df, mean, trim = 0.5)
-# equivalently
+
+### Passing additional arguments
+
+```r
+mean(..., trim = 0.5)
+```
+computes trimed mean of the input.
+
+```{r}
 df %>% map(mean, trim = 0.5)
 ```
 
+### Inline function / expressions
+
 ```{r}
-# preserve names
-z <- list(x = 1:3, y = 4:5)
-map(z, length)
-# equivalently
-z %>% map(length)
+df %>% map(function(x) x^2)
+```
+or
+```{r}
+df %>% map(function(.) .^2)
+```
+or simply
+
+```{r}
+df %>% map(~ .^2)
 ```
 
+### Name and position shortcuts
 
-The function `group_split` could be used to split a data frame into a list
+The `map` function also provide some shortcuts to extract elements from lists or vectors.
+
 ```{r}
-(models <- mtcars %>%
-  group_split(cyl) %>%
-  map(function(df) lm(mpg ~ wt, data = df)))
-
-# or simply
-(models <- mtcars %>%
-  group_split(cyl) %>%
-  map(~ lm(mpg ~ wt, data = .)))
+roster <- list(
+  list(name = "Peter", id = 1231, grades = list(STA141A = "A", STA141B = "A")),
+  list(name = "Mary",  id = 4213, grades = list(STA141A = "B", STA141B = "B"))
+)
 ```
+
+```{r}
+roster %>% map("name")
+```
+
+## Multi-level extraction
+```{r}
+roster %>% map(list("grades", "STA141B"))
+```
+
 
 ## Type-specific map
 
@@ -230,23 +352,116 @@ The function `group_split` could be used to split a data frame into a list
 - `map_chr()` makes a character vector.
 
 ```{r}
-map_dbl(c(9, 16, 25), sqrt)
-```
-
-## Name and position shortcuts
-
-The `map_` functions provide some shortcuts to extract elements from lists or vectors.
-
-```{r}
-list(LETTERS, letters) %>% map_chr(2)
+df %>% map_dbl(mean)
 ```
 
 ```{r}
-mtcars %>%
-  group_split(cyl) %>%
-  map(~ lm(mpg ~ wt, data = .)) %>%
-  map(summary) %>%
-  map_dbl("r.squared")
+1:5 %>% map_int(fac)
+```
+
+```{r}
+1:5 %>% map_lgl(~ . == 2L)
+```
+
+
+## Enumerating over the input
+
+```{r}
+eleven_to_twenty <- c(11, 12, 13)
+b <- c(4, 5, 6)
+eleven_to_twenty %>% imap_dbl(function(v, i) v + b[i])
+# equivalently
+eleven_to_twenty %>% imap_dbl(~ .x + b[.y])
+```
+
+
+## Filtering
+
+```{r}
+eleven_to_twenty <- 11:20
+eleven_to_twenty %>% pluck(1) # equivalent to eleven_to_twenty[1]
+
+```
+
+```{r}
+a_to_e <- list(lowers = letters[1:5], uppers = LETTERS[1:5])
+a_to_e %>% pluck("lowers") # equivalent to a_to_e["lowers"]
+a_to_e %>% pluck("lowers", 2) # equivalent to a_to_e["lowers"][2]
+```
+
+## Keep and drop elements
+
+```{r}
+is_even <- function(x) x %% 2 == 0
+eleven_to_twenty %>% keep(is_even)
+# or equivalently
+eleven_to_twenty %>% keep(~ . %% 2 == 0)
+
+a_to_e %>% keep(~ "eleven_to_twenty" %in% .)
+```
+
+```{r}
+eleven_to_twenty %>% keep(~ !is_even(.))
+eleven_to_twenty %>% keep(negate(is_even))
+eleven_to_twenty %>% discard(is_even)
+```
+
+## Summerizing
+
+```{r}
+# is every element in `eleven_to_twenty` even?
+eleven_to_twenty %>% every(is_even) # more efficient then all(is_even(eleven_to_twenty))
+# are some elements in `eleven_to_twenty` even?
+eleven_to_twenty %>% some(is_even) # more efficient then any(is_even(eleven_to_twenty))
+
+eleven_to_twenty %>% has_element(12) # 12 is eleven_to_twenty double
+eleven_to_twenty %>% has_element(12L)
+
+# the first even number is
+eleven_to_twenty %>% detect(is_even)
+# the first even number divisible by 7 is
+eleven_to_twenty %>% detect(~ . %% 7 == 0)
+
+# get the index of the first element  divisible by 7, then extract it
+eleven_to_twenty %>%
+  detect_index(~ . %% 7 == 0) %>%
+  pluck(eleven_to_twenty, .)
+```
+
+
+## Modify elements selectively
+
+```{r}
+# eleven_to_twenty %>% modify(~ . + 1) results in an error because eleven_to_twenty is an integer vector
+eleven_to_twenty %>% modify(~ . + 1L)
+
+eleven_to_twenty %>% modify_if(is_even, ~ -.)
+eleven_to_twenty %>% modify_if(~ !is_even(.), ~ -.)
+
+eleven_to_twenty %>% modify_at(c(1, 3, 5), ~ . + 2L)
+```
+
+
+## Reshape lists
+
+```{r}
+a_to_e %>% flatten_chr()
+```
+
+```{r}
+a_to_e %>%
+  transpose() %>%
+  map(~ str_c(.$lowers, .$uppers))
+```
+
+## Add elements to lists
+
+```{r}
+li <- list(a = 1, b = 2)
+li %>%
+  append(list(c = 3, d = 3)) %>%
+  prepend(list(x = 0, y = 0)) %>%
+  splice(u = 3, v = 4)
 ```
 
 
@@ -273,113 +488,9 @@ l <- list(
   c = c(4, 7, 9)
 )
 
-l %>% pmap(function(a, b, c) a / (b + c))
-# or equivalently
-l %>% pmap(~ ..1 / (..2 + ..3))
+l %>% pmap_dbl(function(a, b, c) a / (b + c))
 ```
  
-
-
-## Enumerating over the input
-
-```{r}
-a <- c(11, 12, 13)
-b <- c(4, 5, 6)
-a %>% imap_dbl(~ .x + b[.y])
-# equivalently
-a %>% imap_dbl(function(v, i) v + b[i])
-```
-
-
-## Filtering
-
-```{r}
-a <- 11:20
-m <- list(lowers = letters, uppers = LETTERS)
-
-a %>% pluck(1) # equivalent to a[1]
-m %>% pluck("lowers") # equivalent to m["lowers"]
-m %>% pluck("lowers", 2) # equivalent to m["lowers"][2]
-```
-
-### Keep and drop elements
-
-```{r}
-is_even <- function(x) x %% 2 == 0
-a %>% keep(is_even)
-# or equivalently
-a %>% keep(~ . %% 2 == 0)
-
-m %>% keep(~ "A" %in% .)
-```
-
-```{r}
-a %>% keep(~ !is_even(.))
-a %>% keep(negate(is_even))
-a %>% discard(is_even)
-```
-
-## Summerizing
-
-```{r}
-# is every element in `a` even?
-a %>% every(is_even) # maybe equivalent to all(is_even(a))
-# are some elements in `a` even?
-a %>% some(is_even) # maybe equivalent to any(is_even(a))
-
-a %>% has_element(12) # 12 is a double
-a %>% has_element(12L)
-
-# the first even number is
-a %>% detect(is_even)
-# the first even number divisible by 7 is
-a %>% detect(~ . %% 7 == 0)
-
-# get the index of the first element  divisible by 7, then extract it
-a %>%
-  detect_index(~ . %% 7 == 0) %>%
-  pluck(a, .)
-```
-
-
-## Modify elements selectively
-
-```{r}
-# a %>% modify(~ . + 1) results in an error because a is an integer vector
-a %>% modify(~ . + 1L)
-
-a %>% modify_if(is_even, ~ -.)
-a %>% modify_if(~ !is_even(.), ~ -.)
-
-a %>% modify_at(c(1, 3, 5), ~ . + 2L)
-```
-
-
-## Reshape lists
-
-```{r}
-m %>% flatten_chr()
-```
-
-```{r}
-(m1 <- m %>% map(~ .[1:5]))
-
-m1 %>% pluck("lowers", 2)
-m1 %>%
-  transpose() %>%
-  map(~ stringr::str_c(.$lowers, .$uppers))
-```
-
-## Add elements to lists
-
-```{r}
-li <- list(a = 1, b = 2)
-li %>%
-  append(list(c = 3, d = 3)) %>%
-  prepend(list(x = 0, y = 0)) %>%
-  splice(u = 3, v = 4)
-```
-
 ## Cross
 
 The `map` function applies to the inputs elementwisely. Sometimes, we wish to consider all combinations of the inputs. The `cross*` functions are designed to handle those situations.
@@ -406,8 +517,8 @@ li %>%
 
 ```{r}
 dat <- tibble(
-  x = seq(-1, 1, length = 50),
-  y = seq(-1, 1, length = 50)
+  x = seq(-1, 1, length = 10),
+  y = seq(-1, 1, length = 10)
 )
 
 
@@ -428,14 +539,27 @@ dat %>%
 The `reduce` function combines the values of a vector by iteratively applying a binary function.
 
 ```{r}
-reduce(1:4, `+`)
+x <- 1:4
+x %>% reduce(`+`)
 # it means ((1 + 2) + 3) + 4
-reduce(1:4, `+`, .dir = "backward")
+1:4 %>% reduce(`+`, .dir = "backward")
 # it means 1 + (2 + (3 + 4))
 
-reduce(4:1, choose)
+4:1 %>% reduce(choose)
 # it means choose(choose(choose(4, 3), 2), 1)
 ```
+
+It is most useful if we wants to row bind or columm bind a list of data frames.
+
+```{r}
+dfs <- list(
+  tibble(name = "Peter", age = 23),
+  tibble(name = "Paul", age = 19),
+  tibble(name = "Mary", age = 22)
+)
+dfs %>% reduce(bind_rows)
+```
+
 
 
 ```{r}
@@ -449,24 +573,25 @@ sum_until <- function(x, y) {
   }
 }
 
-reduce(1:10, sum_until)
+1:10 %>% reduce(sum_until)
 ```
 
 `accumulate` works similarly but keep all the imediate calculations.
 
 ```{r}
-accumulate(1:4, `+`)
+1:10 %>% accumulate(`+`)
 ```
 
 ```{r}
-accumulate(1:10, sum_until)
+1:10 %>% accumulate(sum_until)
 ```
 
-# Nesting
+# A example of linear regression
 
 ```{r}
 mtcars %>%
   nest(data = -cyl)
+
 # or more readible
 mtcars %>%
   group_by(cyl) %>%
