@@ -388,8 +388,6 @@ summary {
 </ul></li>
 <li><a href="#what-is-functional-programming">What is functional programming?</a></li>
 <li><a href="#is-r-a-functional-language">Is R a functional language?</a></li>
-<li><a href="#r-evaluates-expression-lazily">R evaluates expression lazily</a></li>
-<li><a href="#r-is-also-very-dynamic">R is also very dynamic</a></li>
 <li><a href="#revisit-for-loops">Revisit for loops</a>
 <ul>
 <li><a href="#base-r-solution">Base R solution</a></li>
@@ -399,7 +397,6 @@ summary {
 <li><a href="#passing-additional-arguments">Passing additional arguments</a></li>
 <li><a href="#inline-function-expressions">Inline function / expressions</a></li>
 <li><a href="#name-and-position-shortcuts">Name and position shortcuts</a></li>
-</ul></li>
 <li><a href="#multi-level-extraction">Multi-level extraction</a></li>
 <li><a href="#type-specific-map">Type-specific map</a></li>
 <li><a href="#enumerating-over-the-input">Enumerating over the input</a></li>
@@ -410,10 +407,19 @@ summary {
 <li><a href="#modify-elements-selectively">Modify elements selectively</a></li>
 <li><a href="#reshape-lists">Reshape lists</a></li>
 <li><a href="#add-elements-to-lists">Add elements to lists</a></li>
+<li><a href="#capture-error-and-warnings">Capture error and warnings</a></li>
 <li><a href="#map-more-than-one-argument">Map more than one argument</a></li>
 <li><a href="#cross">Cross</a></li>
 <li><a href="#reduce-iteratable">Reduce iteratable</a></li>
+</ul></li>
 <li><a href="#a-example-of-linear-regression">A example of linear regression</a></li>
+<li><a href="#related-concepts-of-r-functions">Related concepts of R Functions</a>
+<ul>
+<li><a href="#lexical-scoping">Lexical scoping</a></li>
+<li><a href="#dynamic-scoping">Dynamic scoping</a></li>
+<li><a href="#lazy-evaluation">Lazy evaluation</a></li>
+<li><a href="#some-terminology">Some terminology</a></li>
+</ul></li>
 <li><a href="#references">References</a></li>
 </ul>
 </div>
@@ -535,51 +541,6 @@ a[3]</code></pre>
 <pre class="r"><code>z &lt;- 1
 `&lt;-`(z, 1)</code></pre>
 </div>
-<div id="r-evaluates-expression-lazily" class="section level2">
-<h2>R evaluates expression lazily</h2>
-<p>Related meta programming.</p>
-<pre class="r"><code>f &lt;- function(x) {
-  substitute(x)
-}
-
-# note abc was not defined `substitute` captures the expression
-f(abc)</code></pre>
-<pre><code>## abc</code></pre>
-</div>
-<div id="r-is-also-very-dynamic" class="section level2">
-<h2>R is also very dynamic</h2>
-<p>We could change the body of previously defined functions</p>
-<pre class="r"><code>add &lt;- function(x, y) x + y
-add(3, 1)</code></pre>
-<pre><code>## [1] 4</code></pre>
-<pre class="r"><code>body(add) &lt;- quote(x - y)
-add(3, 1)</code></pre>
-<pre><code>## [1] 2</code></pre>
-<p>We could also change the frame that a function was defined at.</p>
-<pre class="r"><code>y &lt;- 2
-addy &lt;- function(x) {
-  x + y
-}
-addy(3)</code></pre>
-<pre><code>## [1] 5</code></pre>
-<pre class="r"><code>foo &lt;- function(x) {
-  y &lt;- 3
-  addy(x)
-}
-
-foo(3)</code></pre>
-<pre><code>## [1] 5</code></pre>
-<p><code>foo(3)</code> returns 3 because <code>addy</code> was defined in the global environment. But we could do something like this</p>
-<pre class="r"><code>foo &lt;- function(x) {
-  y &lt;- 3
-  environment(addy) &lt;- environment()
-  addy(x)
-}
-
-foo(3)</code></pre>
-<pre><code>## [1] 6</code></pre>
-<p><code>environment(addy) &lt;- environment()</code> changes lexical scope of the function <code>addy</code> from global to the calling frame of <code>foo</code>.</p>
-</div>
 <div id="revisit-for-loops" class="section level2">
 <h2>Revisit for loops</h2>
 <p>Suppose we want to compute the sample medians for each column of the data frame</p>
@@ -593,37 +554,37 @@ foo(3)</code></pre>
 df &lt;- tibble(!!!rerun(4, rnorm(10)) %&gt;% set_names(letters[seq_len(length(.))]))</code></pre>
 <p>A naive way to do so</p>
 <pre class="r"><code>median(df$a)</code></pre>
-<pre><code>## [1] 0.2220421</code></pre>
+<pre><code>## [1] 0.2413191</code></pre>
 <pre class="r"><code>median(df$b)</code></pre>
-<pre><code>## [1] -0.2003951</code></pre>
+<pre><code>## [1] -0.01606489</code></pre>
 <pre class="r"><code>median(df$c)</code></pre>
-<pre><code>## [1] 0.2561114</code></pre>
+<pre><code>## [1] -0.6555485</code></pre>
 <pre class="r"><code>median(df$d)</code></pre>
-<pre><code>## [1] 0.2966766</code></pre>
+<pre><code>## [1] -0.5461644</code></pre>
 <pre class="r"><code># a base R for loop
 output &lt;- vector(&quot;double&quot;, ncol(df)) # 1. output
 for (i in seq_along(df)) { # 2. sequence
   output[i] &lt;- median(df[[i]]) # 3. body
 }
 output</code></pre>
-<pre><code>## [1]  0.2220421 -0.2003951  0.2561114  0.2966766</code></pre>
+<pre><code>## [1]  0.24131914 -0.01606489 -0.65554845 -0.54616443</code></pre>
 <div id="base-r-solution" class="section level3">
 <h3>Base R solution</h3>
 <pre class="r"><code>lapply(df, median)</code></pre>
 <pre><code>## $a
-## [1] 0.2220421
+## [1] 0.2413191
 ## 
 ## $b
-## [1] -0.2003951
+## [1] -0.01606489
 ## 
 ## $c
-## [1] 0.2561114
+## [1] -0.6555485
 ## 
 ## $d
-## [1] 0.2966766</code></pre>
+## [1] -0.5461644</code></pre>
 <pre class="r"><code>sapply(df, median)</code></pre>
-<pre><code>##          a          b          c          d 
-##  0.2220421 -0.2003951  0.2561114  0.2966766</code></pre>
+<pre><code>##           a           b           c           d 
+##  0.24131914 -0.01606489 -0.65554845 -0.54616443</code></pre>
 <p>These functions are great but they are not far less powerful then the next function <code>map</code>.</p>
 </div>
 </div>
@@ -640,16 +601,16 @@ output</code></pre>
 </ul>
 <pre class="r"><code>df %&gt;% map(median)</code></pre>
 <pre><code>## $a
-## [1] 0.2220421
+## [1] 0.2413191
 ## 
 ## $b
-## [1] -0.2003951
+## [1] -0.01606489
 ## 
 ## $c
-## [1] 0.2561114
+## [1] -0.6555485
 ## 
 ## $d
-## [1] 0.2966766</code></pre>
+## [1] -0.5461644</code></pre>
 <p>Consider the following naive function which computes factorials</p>
 <pre class="r"><code>fac &lt;- function(n) {
   if (n == 1) {
@@ -687,69 +648,69 @@ fac(5)</code></pre>
 <p>computes trimed mean of the input.</p>
 <pre class="r"><code>df %&gt;% map(mean, trim = 0.5)</code></pre>
 <pre><code>## $a
-## [1] 0.2220421
+## [1] 0.2413191
 ## 
 ## $b
-## [1] -0.2003951
+## [1] -0.01606489
 ## 
 ## $c
-## [1] 0.2561114
+## [1] -0.6555485
 ## 
 ## $d
-## [1] 0.2966766</code></pre>
+## [1] -0.5461644</code></pre>
 </div>
 <div id="inline-function-expressions" class="section level3">
 <h3>Inline function / expressions</h3>
 <pre class="r"><code>df %&gt;% map(function(x) x^2)</code></pre>
 <pre><code>## $a
-##  [1] 0.19914401 0.04915354 3.25447328 0.04945204 0.11243170 1.09955476
-##  [7] 0.48051157 0.76067839 1.75563439 0.14842655
+##  [1] 0.94383102 4.06666857 0.32386361 3.37298812 0.04710281 0.20120194
+##  [7] 5.32076742 0.07054679 1.49098690 0.89706605
 ## 
 ## $b
-##  [1] 1.136523979 2.059712160 3.031619014 0.077361686 0.333221274 0.406085251
-##  [7] 0.003277705 0.753658225 2.470300696 0.015043163
+##  [1] 0.010630600 0.961279908 0.760026213 0.008552465 0.001110019 0.201806092
+##  [7] 0.399686367 2.398594522 0.104695445 0.004283275
 ## 
 ## $c
-##  [1] 0.63269712 1.81422924 4.22219978 0.25038238 0.00625864 0.94435841
-##  [7] 0.60047431 1.08103002 1.99153927 0.18758542
+##  [1] 0.32146802 0.94597089 0.19937913 1.53325949 0.22443244 2.05442403
+##  [7] 1.07284926 0.00598707 0.77936660 0.70116156
 ## 
 ## $d
-##  [1] 0.07836767 1.73458063 1.74457785 0.14673590 0.71401088 0.59491610
-##  [7] 0.77890879 0.14218270 0.04677789 0.99842405</code></pre>
+##  [1] 2.834759e-02 3.596708e-01 2.426579e-01 1.045873e+01 1.807383e+00
+##  [6] 9.759960e-01 9.685944e-04 7.416897e-03 2.305252e-01 1.124686e+00</code></pre>
 <p>or</p>
 <pre class="r"><code>df %&gt;% map(function(.) .^2)</code></pre>
 <pre><code>## $a
-##  [1] 0.19914401 0.04915354 3.25447328 0.04945204 0.11243170 1.09955476
-##  [7] 0.48051157 0.76067839 1.75563439 0.14842655
+##  [1] 0.94383102 4.06666857 0.32386361 3.37298812 0.04710281 0.20120194
+##  [7] 5.32076742 0.07054679 1.49098690 0.89706605
 ## 
 ## $b
-##  [1] 1.136523979 2.059712160 3.031619014 0.077361686 0.333221274 0.406085251
-##  [7] 0.003277705 0.753658225 2.470300696 0.015043163
+##  [1] 0.010630600 0.961279908 0.760026213 0.008552465 0.001110019 0.201806092
+##  [7] 0.399686367 2.398594522 0.104695445 0.004283275
 ## 
 ## $c
-##  [1] 0.63269712 1.81422924 4.22219978 0.25038238 0.00625864 0.94435841
-##  [7] 0.60047431 1.08103002 1.99153927 0.18758542
+##  [1] 0.32146802 0.94597089 0.19937913 1.53325949 0.22443244 2.05442403
+##  [7] 1.07284926 0.00598707 0.77936660 0.70116156
 ## 
 ## $d
-##  [1] 0.07836767 1.73458063 1.74457785 0.14673590 0.71401088 0.59491610
-##  [7] 0.77890879 0.14218270 0.04677789 0.99842405</code></pre>
+##  [1] 2.834759e-02 3.596708e-01 2.426579e-01 1.045873e+01 1.807383e+00
+##  [6] 9.759960e-01 9.685944e-04 7.416897e-03 2.305252e-01 1.124686e+00</code></pre>
 <p>or simply</p>
 <pre class="r"><code>df %&gt;% map(~ .^2)</code></pre>
 <pre><code>## $a
-##  [1] 0.19914401 0.04915354 3.25447328 0.04945204 0.11243170 1.09955476
-##  [7] 0.48051157 0.76067839 1.75563439 0.14842655
+##  [1] 0.94383102 4.06666857 0.32386361 3.37298812 0.04710281 0.20120194
+##  [7] 5.32076742 0.07054679 1.49098690 0.89706605
 ## 
 ## $b
-##  [1] 1.136523979 2.059712160 3.031619014 0.077361686 0.333221274 0.406085251
-##  [7] 0.003277705 0.753658225 2.470300696 0.015043163
+##  [1] 0.010630600 0.961279908 0.760026213 0.008552465 0.001110019 0.201806092
+##  [7] 0.399686367 2.398594522 0.104695445 0.004283275
 ## 
 ## $c
-##  [1] 0.63269712 1.81422924 4.22219978 0.25038238 0.00625864 0.94435841
-##  [7] 0.60047431 1.08103002 1.99153927 0.18758542
+##  [1] 0.32146802 0.94597089 0.19937913 1.53325949 0.22443244 2.05442403
+##  [7] 1.07284926 0.00598707 0.77936660 0.70116156
 ## 
 ## $d
-##  [1] 0.07836767 1.73458063 1.74457785 0.14673590 0.71401088 0.59491610
-##  [7] 0.77890879 0.14218270 0.04677789 0.99842405</code></pre>
+##  [1] 2.834759e-02 3.596708e-01 2.426579e-01 1.045873e+01 1.807383e+00
+##  [6] 9.759960e-01 9.685944e-04 7.416897e-03 2.305252e-01 1.124686e+00</code></pre>
 </div>
 <div id="name-and-position-shortcuts" class="section level3">
 <h3>Name and position shortcuts</h3>
@@ -757,16 +718,16 @@ fac(5)</code></pre>
 <pre class="r"><code># extract first elelment from each column
 df %&gt;% map(1)</code></pre>
 <pre><code>## $a
-## [1] -0.4462555
+## [1] -0.9715097
 ## 
 ## $b
-## [1] -1.066079
+## [1] -0.1031048
 ## 
 ## $c
-## [1] -0.7954226
+## [1] 0.5669815
 ## 
 ## $d
-## [1] -0.2799423</code></pre>
+## [1] 0.1683674</code></pre>
 <pre class="r"><code>roster &lt;- list(
   list(name = &quot;Peter&quot;, id = 1231, grades = list(STA141A = &quot;A&quot;, STA141B = &quot;A&quot;), hobbies = c(&quot;Math&quot;, &quot;Stat&quot;)),
   list(name = &quot;Mary&quot;,  id = 4213, grades = list(STA141A = &quot;B&quot;, STA141B = &quot;B&quot;), hobbies = c(&quot;Math&quot;, &quot;Chem&quot;))
@@ -778,9 +739,8 @@ df %&gt;% map(1)</code></pre>
 ## [[2]]
 ## [1] &quot;Mary&quot;</code></pre>
 </div>
-</div>
-<div id="multi-level-extraction" class="section level2">
-<h2>Multi-level extraction</h2>
+<div id="multi-level-extraction" class="section level3">
+<h3>Multi-level extraction</h3>
 <pre class="r"><code>roster %&gt;% map(list(&quot;grades&quot;, &quot;STA141B&quot;))</code></pre>
 <pre><code>## [[1]]
 ## [1] &quot;A&quot;
@@ -794,8 +754,8 @@ df %&gt;% map(1)</code></pre>
 ## [[2]]
 ## [1] &quot;Math&quot;</code></pre>
 </div>
-<div id="type-specific-map" class="section level2">
-<h2>Type-specific map</h2>
+<div id="type-specific-map" class="section level3">
+<h3>Type-specific map</h3>
 <p><code>map()</code> always returns a list, even if all the elements have the same flavor and are of length one. But in that case, you might prefer a simpler object.</p>
 <ul>
 <li><code>map_lgl()</code> makes a logical vector.</li>
@@ -804,8 +764,8 @@ df %&gt;% map(1)</code></pre>
 <li><code>map_chr()</code> makes a character vector.</li>
 </ul>
 <pre class="r"><code>df %&gt;% map_dbl(mean)</code></pre>
-<pre><code>##            a            b            c            d 
-## 0.1754370162 0.0007217019 0.0356677044 0.1601378318</code></pre>
+<pre><code>##           a           b           c           d 
+##  0.12110069 -0.07249716 -0.49104102 -0.79759153</code></pre>
 <pre class="r"><code>1:5 %&gt;% map_int(fac)</code></pre>
 <pre><code>## [1]   1   2   6  24 120</code></pre>
 <pre class="r"><code>1:5 %&gt;% map_lgl(~ . == 2L)</code></pre>
@@ -813,8 +773,8 @@ df %&gt;% map(1)</code></pre>
 <pre class="r"><code>roster %&gt;% map_chr(&quot;name&quot;)</code></pre>
 <pre><code>## [1] &quot;Peter&quot; &quot;Mary&quot;</code></pre>
 </div>
-<div id="enumerating-over-the-input" class="section level2">
-<h2>Enumerating over the input</h2>
+<div id="enumerating-over-the-input" class="section level3">
+<h3>Enumerating over the input</h3>
 <p><code>imap</code> enumerates over the input</p>
 <pre class="r"><code>a &lt;- c(11, 12, 13)
 a %&gt;% imap_dbl(function(v, i) v)</code></pre>
@@ -828,8 +788,8 @@ a %&gt;% imap_dbl(function(v, i) v + b[i])</code></pre>
 a %&gt;% imap_dbl(~ .x + b[.y])</code></pre>
 <pre><code>## [1] 15 17 19</code></pre>
 </div>
-<div id="extraction-and-assignment" class="section level2">
-<h2>Extraction and assignment</h2>
+<div id="extraction-and-assignment" class="section level3">
+<h3>Extraction and assignment</h3>
 <pre class="r"><code>x &lt;- 11:20
 x %&gt;% pluck(1) # equivalent to x[1]</code></pre>
 <pre><code>## [1] 11</code></pre>
@@ -860,8 +820,8 @@ a_to_e %&gt;% pluck(&quot;lowers&quot;) # equivalent to a_to_e[&quot;lowers&quot
 ## $uppers
 ## [1] &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;D&quot; &quot;E&quot;</code></pre>
 </div>
-<div id="keep-and-drop-elements" class="section level2">
-<h2>Keep and drop elements</h2>
+<div id="keep-and-drop-elements" class="section level3">
+<h3>Keep and drop elements</h3>
 <pre class="r"><code>is_even &lt;- function(x) x %% 2 == 0
 11:20 %&gt;% keep(is_even)</code></pre>
 <pre><code>## [1] 12 14 16 18 20</code></pre>
@@ -875,8 +835,8 @@ a_to_e %&gt;% pluck(&quot;lowers&quot;) # equivalent to a_to_e[&quot;lowers&quot
 <pre class="r"><code>11:20 %&gt;% discard(is_even)</code></pre>
 <pre><code>## [1] 11 13 15 17 19</code></pre>
 </div>
-<div id="predicate-functions" class="section level2">
-<h2>Predicate functions</h2>
+<div id="predicate-functions" class="section level3">
+<h3>Predicate functions</h3>
 <pre class="r"><code># is every element in `eleven_to_twenty` even?
 11:20 %&gt;% every(is_even) # more efficient then all(is_even(11:20))</code></pre>
 <pre><code>## [1] FALSE</code></pre>
@@ -897,8 +857,8 @@ a_to_e %&gt;% pluck(&quot;lowers&quot;) # equivalent to a_to_e[&quot;lowers&quot
 11:20 %&gt;% detect_index(~ . %% 7 == 0)</code></pre>
 <pre><code>## [1] 4</code></pre>
 </div>
-<div id="map-conditionaly" class="section level2">
-<h2>Map conditionaly</h2>
+<div id="map-conditionaly" class="section level3">
+<h3>Map conditionaly</h3>
 <pre class="r"><code>square &lt;- function(x) x^2
 # square all even numbers
 1:5 %&gt;% map_if(is_even, square)</code></pre>
@@ -934,11 +894,11 @@ a_to_e %&gt;% pluck(&quot;lowers&quot;) # equivalent to a_to_e[&quot;lowers&quot
 ## [1] 25</code></pre>
 <p>Note: these are currently no type specific <code>map_if</code> or <code>map_at</code>.</p>
 </div>
-<div id="modify-elements-selectively" class="section level2">
-<h2>Modify elements selectively</h2>
+<div id="modify-elements-selectively" class="section level3">
+<h3>Modify elements selectively</h3>
 <p>Unlike <code>map()</code> and its variants which always return a fixed object type, the <code>modify()</code> family always returns the same type as the input object.</p>
 <pre class="r"><code>rnorm(5) %&gt;% modify(square)</code></pre>
-<pre><code>## [1] 3.440357727 0.173128659 0.848722766 0.006895605 0.243435178</code></pre>
+<pre><code>## [1] 2.56320344 1.28407918 0.05037268 1.76895110 0.10408050</code></pre>
 <pre class="r"><code># it doesn&#39;t work because 1:5 is an integer vector, while `square` produces double
 # 1:5 %&gt;% modify(square)  
 
@@ -950,8 +910,8 @@ a_to_e %&gt;% pluck(&quot;lowers&quot;) # equivalent to a_to_e[&quot;lowers&quot
 <pre><code>## [1]  1  2 -3  4 -5</code></pre>
 <p>Again, these modifications are not in-place.</p>
 </div>
-<div id="reshape-lists" class="section level2">
-<h2>Reshape lists</h2>
+<div id="reshape-lists" class="section level3">
+<h3>Reshape lists</h3>
 <pre class="r"><code>a_to_e &lt;- list(lowers = letters[1:5], uppers = LETTERS[1:5])
 # a_to_e %&gt;% flatten()
 a_to_e %&gt;% flatten_chr()  # type specific</code></pre>
@@ -985,8 +945,8 @@ apply(M, 1, mean)  # it is not a perfect example because there is rowMeans(M)</c
 M %&gt;% array_tree(1) %&gt;% map_dbl(mean)</code></pre>
 <pre><code>## [1] 4 5 6</code></pre>
 </div>
-<div id="add-elements-to-lists" class="section level2">
-<h2>Add elements to lists</h2>
+<div id="add-elements-to-lists" class="section level3">
+<h3>Add elements to lists</h3>
 <pre class="r"><code>li &lt;- list(a = 1, b = 2)
 li %&gt;%
   append(list(c = 3, d = 3)) %&gt;%
@@ -1016,8 +976,50 @@ li %&gt;%
 ## $v
 ## [1] 4</code></pre>
 </div>
-<div id="map-more-than-one-argument" class="section level2">
-<h2>Map more than one argument</h2>
+<div id="capture-error-and-warnings" class="section level3">
+<h3>Capture error and warnings</h3>
+<pre class="r"><code>log(&quot;a&quot;)  # gives error</code></pre>
+<pre><code>## Error in log(&quot;a&quot;): non-numeric argument to mathematical function</code></pre>
+<pre class="r"><code>log(-1)   # gives warning</code></pre>
+<pre><code>## Warning in log(-1): NaNs produced</code></pre>
+<pre><code>## [1] NaN</code></pre>
+<pre class="r"><code>list(&quot;a&quot;, -1, 3) %&gt;% map(log)</code></pre>
+<pre><code>## Error in .Primitive(&quot;log&quot;)(x, base): non-numeric argument to mathematical function</code></pre>
+<pre class="r"><code>list(&quot;a&quot;, -1, 3) %&gt;%
+  map(safely(log))</code></pre>
+<pre><code>## Warning in .Primitive(&quot;log&quot;)(x, base): NaNs produced</code></pre>
+<pre><code>## [[1]]
+## [[1]]$result
+## NULL
+## 
+## [[1]]$error
+## &lt;simpleError in .Primitive(&quot;log&quot;)(x, base): non-numeric argument to mathematical function&gt;
+## 
+## 
+## [[2]]
+## [[2]]$result
+## [1] NaN
+## 
+## [[2]]$error
+## NULL
+## 
+## 
+## [[3]]
+## [[3]]$result
+## [1] 1.098612
+## 
+## [[3]]$error
+## NULL</code></pre>
+<pre class="r"><code>list(-1, 3) %&gt;%
+  map(quietly(log)) %&gt;% 
+  map_dbl(&quot;result&quot;)</code></pre>
+<pre><code>## [1]      NaN 1.098612</code></pre>
+<pre class="r"><code>list(&quot;a&quot;, 3) %&gt;%
+  map_dbl(possibly(log, NaN))</code></pre>
+<pre><code>## [1]      NaN 1.098612</code></pre>
+</div>
+<div id="map-more-than-one-argument" class="section level3">
+<h3>Map more than one argument</h3>
 <p>Two arguments</p>
 <pre class="r"><code>a &lt;- c(7, 8, 9)
 b &lt;- c(2, 3, 4)
@@ -1085,8 +1087,8 @@ x %&gt;% pmap(function(a, b, c) a / (b + c))</code></pre>
 ## [[3]]
 ## [1] 0.1764706</code></pre>
 </div>
-<div id="cross" class="section level2">
-<h2>Cross</h2>
+<div id="cross" class="section level3">
+<h3>Cross</h3>
 <p>The <code>map</code> function applies to the inputs elementwisely. Sometimes, we wish to consider all combinations of the inputs. The <code>cross*</code> functions are designed to handle those situations.</p>
 <p><code>cross2</code> expects two iterables and usually is used together with <code>lift</code></p>
 <pre class="r"><code>a &lt;- c(7, 8, 9)
@@ -1184,8 +1186,8 @@ dat %&gt;% cross_df()</code></pre>
 ## 1     1     2
 ## 2     1     3</code></pre>
 </div>
-<div id="reduce-iteratable" class="section level2">
-<h2>Reduce iteratable</h2>
+<div id="reduce-iteratable" class="section level3">
+<h3>Reduce iteratable</h3>
 <p>The <code>reduce</code> function combines the values of a vector by iteratively applying a binary function.</p>
 <pre class="r"><code>x &lt;- 1:4
 x %&gt;% reduce(`+`)</code></pre>
@@ -1193,27 +1195,37 @@ x %&gt;% reduce(`+`)</code></pre>
 <pre class="r"><code># it means ((1 + 2) + 3) + 4
 1:4 %&gt;% reduce(`+`, .dir = &quot;backward&quot;)</code></pre>
 <pre><code>## [1] 10</code></pre>
-<pre class="r"><code># it means 1 + (2 + (3 + 4))
-
-4:1 %&gt;% reduce(choose)</code></pre>
-<pre><code>## [1] 6</code></pre>
-<pre class="r"><code># it means choose(choose(choose(4, 3), 2), 1)</code></pre>
-<p>It is most useful if we wants to row bind or columm bind a list of data frames.</p>
-<pre class="r"><code>dfs &lt;- list(
-  tibble(name = &quot;Peter&quot;, age = 23),
-  tibble(name = &quot;Paul&quot;, age = 19),
-  tibble(name = &quot;Mary&quot;, age = 22)
+<pre class="r"><code># it means 1 + (2 + (3 + 4))</code></pre>
+<p>It is usefully if we want to average data frames / matrices.</p>
+<pre class="r"><code>matrices &lt;- list(
+  matrix(rnorm(9), nr = 3, nc = 3),
+  matrix(rnorm(9), nr = 3, nc = 3),
+  matrix(rnorm(9), nr = 3, nc = 3)
 )
-dfs %&gt;% reduce(bind_rows)</code></pre>
+matrices %&gt;% reduce(`+`) %&gt;% `/`(length(.))</code></pre>
+<pre><code>##             [,1]        [,2]       [,3]
+## [1,]  0.18437058  0.11677033  0.1485348
+## [2,]  0.04375791 -0.07241418 -0.4034365
+## [3,] -0.37455986  0.18111155 -0.2846365</code></pre>
+<p>It is also useful if we wants to row bind。</p>
+<pre class="r"><code>ll &lt;- list(
+  c(name = &quot;Peter&quot;, age = 23),
+  c(name = &quot;Paul&quot;, age = 19),
+  c(name = &quot;Mary&quot;, age = 22)
+)</code></pre>
+<pre class="r"><code>bind_rows(ll)  #  it only works in dplyr 1.0</code></pre>
+<pre><code>## Error: Argument 1 must have names</code></pre>
+<pre class="r"><code>ll %&gt;% reduce(bind_rows)</code></pre>
 <pre><code>## # A tibble: 3 x 2
-##   name    age
-##   &lt;chr&gt; &lt;dbl&gt;
-## 1 Peter    23
-## 2 Paul     19
-## 3 Mary     22</code></pre>
+##   name  age  
+##   &lt;chr&gt; &lt;chr&gt;
+## 1 Peter 23   
+## 2 Paul  19   
+## 3 Mary  22</code></pre>
 </div>
-<div id="a-example-of-linear-regression" class="section level1">
-<h1>A example of linear regression</h1>
+</div>
+<div id="a-example-of-linear-regression" class="section level2">
+<h2>A example of linear regression</h2>
 <pre class="r"><code>mtcars %&gt;%
   nest(data = -cyl) %&gt;% 
   mutate(model = map(data, ~ lm(mpg ~ wt, data = .))) %&gt;%
@@ -1237,6 +1249,117 @@ mtcars %&gt;%
 ## 1     6 0.465
 ## 2     4 0.509
 ## 3     8 0.423</code></pre>
+</div>
+<div id="related-concepts-of-r-functions" class="section level2">
+<h2>Related concepts of R Functions</h2>
+<div id="lexical-scoping" class="section level3">
+<h3>Lexical scoping</h3>
+<pre class="r"><code>y &lt;- 2
+addy &lt;- function(x) {
+  x + y
+}
+addy(3)</code></pre>
+<pre><code>## [1] 5</code></pre>
+<pre class="r"><code>foo &lt;- function(x) {
+  addy(x)
+}
+foo(3)</code></pre>
+<pre><code>## [1] 5</code></pre>
+<p><code>foo(3)</code> returns 3 because <code>addy</code> was defined in the global environment (the enclosing environment of <code>addy</code>).</p>
+<p>The look up is dynamic though,</p>
+<pre class="r"><code>y &lt;- 4
+addy(3)</code></pre>
+<pre><code>## [1] 7</code></pre>
+</div>
+<div id="dynamic-scoping" class="section level3">
+<h3>Dynamic scoping</h3>
+<p>Looking up variables in the calling environment rather than in the enclosing environment is called dynamic scoping. R is one of the few languages that implement dynamic scoping.</p>
+<pre class="r"><code>y &lt;- 2
+addy &lt;- function(x) {
+  x + y
+}
+
+bar &lt;- function(x) {
+  y &lt;- 4
+  addy(x)
+}
+bar(3)</code></pre>
+<pre><code>## [1] 5</code></pre>
+<p><code>bar(3)</code> returns 3 because of the lexical scroping rules of <code>addy</code>. However, we could change the scope rule by overriding the enclosing environment of a function.</p>
+<pre class="r"><code>bar &lt;- function(x) {
+  y &lt;- 4
+  environment(addy) &lt;- environment()
+  addy(x)
+}
+bar(3)</code></pre>
+<pre><code>## [1] 7</code></pre>
+</div>
+<div id="lazy-evaluation" class="section level3">
+<h3>Lazy evaluation</h3>
+<p>In R, an expression is only evaluted when it is needed.</p>
+<pre class="r"><code>one &lt;- function() {
+  cat(&quot;called one\n&quot;)
+  1
+}
+
+square &lt;- function(x) {
+  cat(&quot;called square\n&quot;)
+  x^2
+}
+square(one())</code></pre>
+<pre><code>## called square
+## called one</code></pre>
+<pre><code>## [1] 1</code></pre>
+<p>For comparsion, python is eager.</p>
+<pre class="python"><code>def one():
+  print(&quot;called one&quot;)
+  return 1
+
+def square(x):
+  print(&quot;call square&quot;)
+  return x**2
+  
+square(one())</code></pre>
+<pre><code>## called one
+## call square
+## 1</code></pre>
+<p>R could do a lot of interesting things with lazy evaluation.</p>
+<pre class="r"><code>echo &lt;- function(x) {
+  cat(&quot;you typed\n&quot;)
+  print(substitute(x))
+}
+
+echo(it + does - not == have * to / make ^ sense)</code></pre>
+<pre><code>## you typed
+## it + does - not == have * to/make^sense</code></pre>
+</div>
+<div id="some-terminology" class="section level3">
+<h3>Some terminology</h3>
+<p>We end this chapter with several terminology.</p>
+<ul>
+<li>functionals
+<ul>
+<li>functions that have function inputs. For example, <code>map</code>: <code>map(x, mean)</code>.</li>
+</ul></li>
+<li>function factories
+<ul>
+<li><p>functions that return functions, For example,</p>
+<pre class="r"><code>pow &lt;- function(k) {
+  force(k)  # to avoid lazy evaluation
+  function(x) {
+    x^k
+  }
+}
+square &lt;- pow(2)
+square(5)</code></pre>
+<pre><code>## [1] 25</code></pre></li>
+</ul></li>
+<li>function operators
+<ul>
+<li>function that has function input(s) and returns a function. For examples, <code>lift</code>, <code>safely</code>.</li>
+</ul></li>
+</ul>
+</div>
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>

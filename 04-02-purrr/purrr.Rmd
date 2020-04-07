@@ -169,63 +169,6 @@ z <- 1
 `<-`(z, 1)
 ```
 
-## R evaluates expression lazily
-
-Related meta programming.
-
-```{r}
-f <- function(x) {
-  substitute(x)
-}
-
-# note abc was not defined `substitute` captures the expression
-f(abc)
-```
-
-
-## R is also very dynamic
-
-We could change the body of previously defined functions
-```{r}
-add <- function(x, y) x + y
-add(3, 1)
-
-body(add) <- quote(x - y)
-add(3, 1)
-```
-
-We could also change the frame that a function was defined at.
-
-```{r}
-y <- 2
-addy <- function(x) {
-  x + y
-}
-addy(3)
-```
-
-```{r}
-foo <- function(x) {
-  y <- 3
-  addy(x)
-}
-
-foo(3)
-```
-
-`foo(3)` returns 3 because `addy` was defined in the global environment. But we could do something like this
-
-```{r}
-foo <- function(x) {
-  y <- 3
-  environment(addy) <- environment()
-  addy(x)
-}
-
-foo(3)
-```
-`environment(addy) <- environment()` changes lexical scope of the function `addy` from global to the calling frame of `foo`.
-
 
 ## Revisit for loops
 
@@ -361,7 +304,7 @@ roster <- list(
 roster %>% map("name")
 ```
 
-## Multi-level extraction
+### Multi-level extraction
 ```{r}
 roster %>% map(list("grades", "STA141B"))
 ```
@@ -370,7 +313,7 @@ roster %>% map(list("hobbies", 1))
 ```
 
 
-## Type-specific map
+### Type-specific map
 
 `map()` always returns a list, even if all the elements have the same flavor and are of length one. But in that case, you might prefer a simpler object.
 
@@ -396,7 +339,7 @@ roster %>% map_chr("name")
 ```
 
 
-## Enumerating over the input
+### Enumerating over the input
 
 `imap` enumerates over the input
 
@@ -416,7 +359,7 @@ a %>% imap_dbl(~ .x + b[.y])
 ```
 
 
-## Extraction and assignment
+### Extraction and assignment
 
 ```{r}
 x <- 11:20
@@ -442,7 +385,7 @@ a_to_e
 ```
 
 
-## Keep and drop elements
+### Keep and drop elements
 
 ```{r}
 is_even <- function(x) x %% 2 == 0
@@ -457,7 +400,7 @@ is_even <- function(x) x %% 2 == 0
 11:20 %>% discard(is_even)
 ```
 
-## Predicate functions
+### Predicate functions
 
 ```{r}
 # is every element in `eleven_to_twenty` even?
@@ -477,7 +420,7 @@ is_even <- function(x) x %% 2 == 0
 11:20 %>% detect_index(~ . %% 7 == 0)
 ```
 
-## Map conditionaly
+### Map conditionaly
 
 ```{r}
 square <- function(x) x^2
@@ -492,7 +435,7 @@ square <- function(x) x^2
 
 Note: these are currently no type specific `map_if` or `map_at`.
 
-## Modify elements selectively
+### Modify elements selectively
 
 Unlike `map()` and its variants which always return a fixed object type, the `modify()` family always returns the same type as the input object.
 
@@ -511,7 +454,7 @@ rnorm(5) %>% modify(square)
 Again, these modifications are not in-place.
 
 
-## Reshape lists
+### Reshape lists
 
 ```{r}
 a_to_e <- list(lowers = letters[1:5], uppers = LETTERS[1:5])
@@ -536,7 +479,7 @@ M %>% array_tree(1) %>% map_dbl(mean)
 ```
 
 
-## Add elements to lists
+### Add elements to lists
 
 ```{r}
 li <- list(a = 1, b = 2)
@@ -546,8 +489,35 @@ li %>%
   splice(u = 3, v = 4)
 ```
 
+### Capture error and warnings
 
-## Map more than one argument
+```{r, error = TRUE}
+log("a")  # gives error
+log(-1)   # gives warning
+```
+
+```{r, error = TRUE}
+list("a", -1, 3) %>% map(log)
+```
+
+```{r}
+list("a", -1, 3) %>%
+  map(safely(log))
+```
+
+```{r}
+list(-1, 3) %>%
+  map(quietly(log)) %>% 
+  map_dbl("result")
+```
+
+```{r}
+list("a", 3) %>%
+  map_dbl(possibly(log, NaN))
+```
+
+
+### Map more than one argument
 
 Two arguments
 ```{r}
@@ -573,7 +543,7 @@ x <- list(
 x %>% pmap(function(a, b, c) a / (b + c))
 ```
  
-## Cross
+### Cross
 
 The `map` function applies to the inputs elementwisely. Sometimes, we wish to consider all combinations of the inputs. The `cross*` functions are designed to handle those situations.
 
@@ -640,7 +610,7 @@ dat %>% expand(crossing(x, y))
 ```
 
 
-## Reduce iteratable
+### Reduce iteratable
 
 The `reduce` function combines the values of a vector by iteratively applying a binary function.
 
@@ -650,24 +620,36 @@ x %>% reduce(`+`)
 # it means ((1 + 2) + 3) + 4
 1:4 %>% reduce(`+`, .dir = "backward")
 # it means 1 + (2 + (3 + 4))
-
-4:1 %>% reduce(choose)
-# it means choose(choose(choose(4, 3), 2), 1)
 ```
 
-It is most useful if we wants to row bind or columm bind a list of data frames.
+It is usefully if we want to average data frames / matrices.
 
 ```{r}
-dfs <- list(
-  tibble(name = "Peter", age = 23),
-  tibble(name = "Paul", age = 19),
-  tibble(name = "Mary", age = 22)
+matrices <- list(
+  matrix(rnorm(9), nr = 3, nc = 3),
+  matrix(rnorm(9), nr = 3, nc = 3),
+  matrix(rnorm(9), nr = 3, nc = 3)
 )
-dfs %>% reduce(bind_rows)
+matrices %>% reduce(`+`) %>% `/`(length(.))
+```
+
+It is also useful if we wants to row bind。
+
+```{r}
+ll <- list(
+  c(name = "Peter", age = 23),
+  c(name = "Paul", age = 19),
+  c(name = "Mary", age = 22)
+)
+```
+
+```{r, error = TRUE}
+bind_rows(ll)  #  it only works in dplyr 1.0
+ll %>% reduce(bind_rows)
 ```
 
 
-# A example of linear regression
+## A example of linear regression
 
 ```{r}
 mtcars %>%
@@ -683,6 +665,128 @@ mtcars %>%
   transmute(r_sq = model %>% map(summary) %>% map_dbl("r.squared"))
 ```
 
+## Related concepts of R Functions
+
+### Lexical scoping
+
+```{r}
+y <- 2
+addy <- function(x) {
+  x + y
+}
+addy(3)
+```
+
+```{r}
+foo <- function(x) {
+  addy(x)
+}
+foo(3)
+```
+
+`foo(3)` returns 3 because `addy` was defined in the global environment (the enclosing environment of `addy`).
+
+
+The look up is dynamic though,
+```{r}
+y <- 4
+addy(3)
+```
+
+
+### Dynamic scoping
+
+Looking up variables in the calling environment rather than in the enclosing environment is called dynamic scoping. R is one of the few languages that implement dynamic scoping.
+
+```{r}
+y <- 2
+addy <- function(x) {
+  x + y
+}
+
+bar <- function(x) {
+  y <- 4
+  addy(x)
+}
+bar(3)
+```
+
+`bar(3)` returns 3 because of the lexical scroping rules of `addy`. However, we could change the scope rule by overriding the enclosing environment of a function.
+
+```{r}
+bar <- function(x) {
+  y <- 4
+  environment(addy) <- environment()
+  addy(x)
+}
+bar(3)
+```
+
+
+### Lazy evaluation
+
+In R, an expression is only evaluted when it is needed.
+
+```{r}
+one <- function() {
+  cat("called one\n")
+  1
+}
+
+square <- function(x) {
+  cat("called square\n")
+  x^2
+}
+square(one())
+```
+
+For comparsion, python is eager.
+```{python}
+def one():
+  print("called one")
+  return 1
+
+def square(x):
+  print("call square")
+  return x**2
+  
+square(one())
+```
+
+R could do a lot of interesting things with lazy evaluation.
+
+```{r}
+echo <- function(x) {
+  cat("you typed\n")
+  print(substitute(x))
+}
+
+echo(it + does - not == have * to / make ^ sense)
+```
+
+### Some terminology
+
+We end this chapter with several terminology.
+
+- functionals
+  - functions that have function inputs. For example, `map`: `map(x, mean)`.
+
+- function factories
+  - functions that return functions, For example,
+    ```{r}
+    pow <- function(k) {
+      force(k)  # to avoid lazy evaluation
+      function(x) {
+        x^k
+      }
+    }
+    square <- pow(2)
+    square(5)
+    ```
+- function operators
+  - function that has function input(s) and returns a function. For examples, `lift`, `safely`.
+
+
 
 # References
 
@@ -690,3 +794,4 @@ mtcars %>%
 - Advanced R https://adv-r.hadley.nz/fp.html
 - purrr tutorial https://jennybc.github.io/purrr-tutorial/
 - purrr cheatsheet https://github.com/rstudio/cheatsheets/blob/master/purrr.pdf
+
