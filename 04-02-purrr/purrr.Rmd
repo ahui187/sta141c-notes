@@ -408,7 +408,6 @@ a %>% imap_dbl(function(v, i) v)
 a %>% imap_dbl(function(v, i) i)
 ```
 
-
 ```{r}
 b <- c(4, 5, 6)
 a %>% imap_dbl(function(v, i) v + b[i])
@@ -417,77 +416,107 @@ a %>% imap_dbl(~ .x + b[.y])
 ```
 
 
-## Filtering
+## Extraction and assignment
 
 ```{r}
-eleven_to_twenty <- 11:20
-eleven_to_twenty %>% pluck(1) # equivalent to eleven_to_twenty[1]
-
+x <- 11:20
+x %>% pluck(1) # equivalent to x[1]
 ```
 
+Nested extraction
 ```{r}
 a_to_e <- list(lowers = letters[1:5], uppers = LETTERS[1:5])
 a_to_e %>% pluck("lowers") # equivalent to a_to_e["lowers"]
 a_to_e %>% pluck("lowers", 2) # equivalent to a_to_e["lowers"][2]
+
 ```
+
+Assignments
+```{r}
+a_to_e %>% assign_in(list("lowers", 2), "z")
+a_to_e %>% modify_in(list("lowers", 2), toupper)
+```
+These modifications are not in-place, the original variable is not modified
+```{r}
+a_to_e
+```
+
 
 ## Keep and drop elements
 
 ```{r}
 is_even <- function(x) x %% 2 == 0
-eleven_to_twenty %>% keep(is_even)
+11:20 %>% keep(is_even)
 # or equivalently
-eleven_to_twenty %>% keep(~ . %% 2 == 0)
+11:20 %>% keep(~ . %% 2 == 0)
 ```
 
 ```{r}
-eleven_to_twenty %>% keep(~ !is_even(.))
-eleven_to_twenty %>% keep(negate(is_even))
-eleven_to_twenty %>% discard(is_even)
+11:20 %>% keep(~ !is_even(.))
+11:20 %>% keep(negate(is_even))
+11:20 %>% discard(is_even)
 ```
 
-## Summerizing
-
+## Predicate functions
 
 ```{r}
 # is every element in `eleven_to_twenty` even?
-eleven_to_twenty %>% every(is_even) # more efficient then all(is_even(eleven_to_twenty))
+11:20 %>% every(is_even) # more efficient then all(is_even(11:20))
 # are some elements in `eleven_to_twenty` even?
-eleven_to_twenty %>% some(is_even) # more efficient then any(is_even(eleven_to_twenty))
+11:20 %>% some(is_even) # more efficient then any(is_even(11:20))
 
-eleven_to_twenty %>% has_element(12) # 12 is eleven_to_twenty double
-eleven_to_twenty %>% has_element(12L)
-eleven_to_twenty %>% some(~ . == 12)  # maybe a bit robust
+11:20 %>% has_element(12L)
+# caution! 12 is a double, but 11:20 is a interger vector.
+11:20 %>% has_element(12)
 
-# the first even number is
-eleven_to_twenty %>% detect(is_even)
+11:20 %>% some(~ . == 12)  # maybe a bit robust
+
 # the first even number divisible by 7 is
-eleven_to_twenty %>% detect(~ . %% 7 == 0)
-
-# get the index of the first element  divisible by 7, then extract it
-eleven_to_twenty %>%
-  detect_index(~ . %% 7 == 0) %>%
-  pluck(eleven_to_twenty, .)
+11:20 %>% detect(~ . %% 7 == 0)
+# get the index of the first elementdivisible by 7
+11:20 %>% detect_index(~ . %% 7 == 0)
 ```
 
+## Map conditionaly
+
+```{r}
+square <- function(x) x^2
+# square all even numbers
+1:5 %>% map_if(is_even, square)
+```
+
+```{r}
+# apply the function to the third and fifth positions
+1:5 %>% map_at(c(3, 5), square)
+```
+
+Note: these are currently no type specific `map_if` or `map_at`.
 
 ## Modify elements selectively
 
+Unlike `map()` and its variants which always return a fixed object type, the `modify()` family always returns the same type as the input object.
+
 ```{r}
-# eleven_to_twenty %>% modify(~ . + 1) results in an error because eleven_to_twenty is an integer vector
-eleven_to_twenty %>% modify(~ . + 1L)
+rnorm(5) %>% modify(square)
 
-eleven_to_twenty %>% modify_if(is_even, ~ -.)
-eleven_to_twenty %>% modify_if(~ !is_even(.), ~ -.)
+# it doesn't work because 1:5 is an integer vector, while `square` produces double
+# 1:5 %>% modify(square)  
 
-eleven_to_twenty %>% modify_at(c(1, 3, 5), ~ . + 2L)
+# make even numbers negative
+1:5 %>% modify_if(is_even, ~ -.)
+
+# make the third and fifth numbers negative
+1:5 %>% modify_at(c(3, 5), ~ -.)
 ```
+Again, these modifications are not in-place.
 
 
 ## Reshape lists
 
 ```{r}
-a_to_e %>% flatten_chr()
+a_to_e <- list(lowers = letters[1:5], uppers = LETTERS[1:5])
+# a_to_e %>% flatten()
+a_to_e %>% flatten_chr()  # type specific
 ```
 
 ```{r}
@@ -495,6 +524,17 @@ a_to_e %>%
   transpose() %>%
   map(~ str_c(.$lowers, .$uppers))
 ```
+
+```{r}
+(M <- matrix(1:9, nrow = 3, ncol = 3))
+
+# base R
+apply(M, 1, mean)  # it is not a perfect example because there is rowMeans(M)
+
+# tidyverse version
+M %>% array_tree(1) %>% map_dbl(mean)
+```
+
 
 ## Add elements to lists
 
@@ -524,20 +564,20 @@ map2(a, b, function(x, y) choose(x, y))
 
 More than two arguments
 ```{r}
-l <- list(
+x <- list(
   a = c(1, 2, 3),
   b = c(5, 4, 8),
   c = c(4, 7, 9)
 )
 
-l %>% pmap_dbl(function(a, b, c) a / (b + c))
+x %>% pmap(function(a, b, c) a / (b + c))
 ```
  
 ## Cross
 
 The `map` function applies to the inputs elementwisely. Sometimes, we wish to consider all combinations of the inputs. The `cross*` functions are designed to handle those situations.
 
-`cross2` usually is used together with `lift`
+`cross2` expects two iterables and usually is used together with `lift`
 ```{r}
 a <- c(7, 8, 9)
 b <- c(2, 3, 4)
@@ -546,6 +586,7 @@ lift(choose)(list(7, 3))
 cross2(a, b) %>% map_dbl(lift(choose))
 ```
 
+`cross` expects a list of iteratbles
 ```{r}
 li <- list(
   a = c(7, 8, 9),
@@ -562,17 +603,40 @@ dat <- tibble(
   x = seq(-1, 1, length = 10),
   y = seq(-1, 1, length = 10)
 )
+```
 
-
-# we wish to plot a heat map of sqrt(x^2 + y^2)
-
+We wish to plot a heat map of `sqrt(x^2 + y^2)`
+```{r}
 dat %>% mutate(z = sqrt(x^2 + y^2)) # wrong
+```
 
+```{r}
 dat %>%
   cross_df() %>%
   mutate(z = sqrt(x^2 + y^2)) %>%
   ggplot(aes(x, y, fill = z)) +
   geom_tile()
+```
+
+
+```{r}
+# alternatively
+dat %>%
+  expand(crossing(x, y)) %>%
+  mutate(z = sqrt(x^2 + y^2)) %>%
+  ggplot(aes(x, y, fill = z)) +
+  geom_tile()
+```
+
+The difference is that `cross_df` doesn't handle duplications.
+
+```{r}
+dat <- tibble(
+  x = c(1, 1),
+  y = c(2, 3)
+)
+dat %>% cross_df()
+dat %>% expand(crossing(x, y))
 ```
 
 
@@ -603,38 +667,15 @@ dfs %>% reduce(bind_rows)
 ```
 
 
-
-```{r}
-# shortcircuit a reduction
-sum_until <- function(x, y) {
-  out <- x + y
-  if (out > 30) {
-    done(out)
-  } else {
-    out
-  }
-}
-
-1:10 %>% reduce(sum_until)
-```
-
-`accumulate` works similarly but keep all the imediate calculations.
-
-```{r}
-1:10 %>% accumulate(`+`)
-```
-
-```{r}
-1:10 %>% accumulate(sum_until)
-```
-
 # A example of linear regression
 
 ```{r}
 mtcars %>%
-  nest(data = -cyl)
+  nest(data = -cyl) %>% 
+  mutate(model = map(data, ~ lm(mpg ~ wt, data = .))) %>%
+  transmute(r_sq = model %>% map(summary) %>% map_dbl("r.squared"))
 
-# or more readible
+# it is more readible
 mtcars %>%
   group_by(cyl) %>%
   nest() %>%
@@ -646,5 +687,6 @@ mtcars %>%
 # References
 
 - R for Data Science https://r4ds.had.co.nz/iteration.html
+- Advanced R https://adv-r.hadley.nz/fp.html
 - purrr tutorial https://jennybc.github.io/purrr-tutorial/
 - purrr cheatsheet https://github.com/rstudio/cheatsheets/blob/master/purrr.pdf
