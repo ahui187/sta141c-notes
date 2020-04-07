@@ -218,14 +218,14 @@ THe `purrr` package (part of `tidyverse`) provides a function `map`.
 
 The basic syntax for `map` is
 ```
-map(ITERATABLE, A_FUNCTION)
+map(ITERABLE, A_FUNCTION)
 ```
 or
 ```
-ITERATABLE %>% map(A_FUNCTION)
+ITERABLE %>% map(A_FUNCTION)
 ```
 
-* `ITERATABLE`'s are objects like vectors, list and data frame.
+* `ITERABLE`'s are objects like vectors, list and data frame.
 * `A_FUNCTION` is a function, an expression, or a list of element names
 
 
@@ -366,12 +366,12 @@ x <- 11:20
 x %>% pluck(1) # equivalent to x[1]
 ```
 
+
 Nested extraction
 ```{r}
 a_to_e <- list(lowers = letters[1:5], uppers = LETTERS[1:5])
 a_to_e %>% pluck("lowers") # equivalent to a_to_e["lowers"]
 a_to_e %>% pluck("lowers", 2) # equivalent to a_to_e["lowers"][2]
-
 ```
 
 Assignments
@@ -400,6 +400,7 @@ is_even <- function(x) x %% 2 == 0
 11:20 %>% discard(is_even)
 ```
 
+
 ### Predicate functions
 
 ```{r}
@@ -416,7 +417,7 @@ is_even <- function(x) x %% 2 == 0
 
 # the first even number divisible by 7 is
 11:20 %>% detect(~ . %% 7 == 0)
-# get the index of the first elementdivisible by 7
+# get the index of the first element divisible by 7
 11:20 %>% detect_index(~ . %% 7 == 0)
 ```
 
@@ -440,10 +441,13 @@ Note: these are currently no type specific `map_if` or `map_at`.
 Unlike `map()` and its variants which always return a fixed object type, the `modify()` family always returns the same type as the input object.
 
 ```{r}
-rnorm(5) %>% modify(square)
+x <- rnorm(5)
+x %>% modify(square)
 
 # it doesn't work because 1:5 is an integer vector, while `square` produces double
-# 1:5 %>% modify(square)  
+# 1:5 %>% modify(square)
+as.double(1:5) %>% modify(square)
+1:5 %>% modify(~ as.integer(.^2))
 
 # make even numbers negative
 1:5 %>% modify_if(is_even, ~ -.)
@@ -462,11 +466,18 @@ a_to_e <- list(lowers = letters[1:5], uppers = LETTERS[1:5])
 a_to_e %>% flatten_chr()  # type specific
 ```
 
+
 ```{r}
 a_to_e %>%
   transpose() %>%
   map(~ str_c(.$lowers, .$uppers))
 ```
+
+```{r}
+mpgt <- mpg %>% transpose()
+mpgt[[5]]
+```
+
 
 ```{r}
 (M <- matrix(1:9, nrow = 3, ncol = 3))
@@ -489,7 +500,7 @@ li %>%
   splice(u = 3, v = 4)
 ```
 
-### Capture error and warnings
+### Capture errors and warnings
 
 ```{r, error = TRUE}
 log("a")  # gives error
@@ -528,8 +539,8 @@ map2(a, b, choose)
 a %>% map2(b, choose)
 b %>% map2(a, ., choose)
 # or equivalently
-map2(a, b, ~ choose(.x, .y))
 map2(a, b, function(x, y) choose(x, y))
+map2(a, b, ~ choose(.x, .y))
 ```
 
 More than two arguments
@@ -542,7 +553,7 @@ x <- list(
 
 x %>% pmap(function(a, b, c) a / (b + c))
 ```
- 
+
 ### Cross
 
 The `map` function applies to the inputs elementwisely. Sometimes, we wish to consider all combinations of the inputs. The `cross*` functions are designed to handle those situations.
@@ -551,12 +562,11 @@ The `map` function applies to the inputs elementwisely. Sometimes, we wish to co
 ```{r}
 a <- c(7, 8, 9)
 b <- c(2, 3, 4)
-choose(7, 3)
-lift(choose)(list(7, 3))
+
 cross2(a, b) %>% map_dbl(lift(choose))
 ```
 
-`cross` expects a list of iteratbles
+`cross` expects a list of iterables
 ```{r}
 li <- list(
   a = c(7, 8, 9),
@@ -568,16 +578,18 @@ li %>%
   map(lift(choose))
 ```
 
+
 ```{r}
 dat <- tibble(
   x = seq(-1, 1, length = 10),
   y = seq(-1, 1, length = 10)
 )
+dat
 ```
 
 We wish to plot a heat map of `sqrt(x^2 + y^2)`
 ```{r}
-dat %>% mutate(z = sqrt(x^2 + y^2)) # wrong
+dat %>% mutate(z  = sqrt(x^2 + y^2)) # wrong
 ```
 
 ```{r}
@@ -592,7 +604,7 @@ dat %>%
 ```{r}
 # alternatively
 dat %>%
-  expand(crossing(x, y)) %>%
+  expand(x, y) %>%
   mutate(z = sqrt(x^2 + y^2)) %>%
   ggplot(aes(x, y, fill = z)) +
   geom_tile()
@@ -606,11 +618,11 @@ dat <- tibble(
   y = c(2, 3)
 )
 dat %>% cross_df()
-dat %>% expand(crossing(x, y))
+dat %>% expand(x, y)
 ```
 
 
-### Reduce iteratable
+### Reduce iterable
 
 The `reduce` function combines the values of a vector by iteratively applying a binary function.
 
