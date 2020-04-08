@@ -19,7 +19,7 @@ output:
 | Date          | Note             | HTML          
 | ----          | ----             | ----          
 | 03-31         | Introduction     | [introduction]
-| 04-02         | functional programming     | [purrr] |     
+| 04-02, 04-07  | [functional programming](04-02/purrr.Rmd)     | [purrr] |     
 
 
 [introduction]: README.md

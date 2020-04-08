@@ -27,10 +27,10 @@
 
 ## Material
 
-| Date  | Note                   | HTML                                                                                    |
-| ----- | ---------------------- | --------------------------------------------------------------------------------------- |
-| 03-31 | Introduction           | [introduction](README.md)                                                               |
-| 04-02 | functional programming | [purrr](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/04-02-purrr/purrr.html) |
+| Date         | Note                                      | HTML                                                                                    |
+| ------------ | ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| 03-31        | Introduction                              | [introduction](README.md)                                                               |
+| 04-02, 04-07 | [functional programming](04-02/purrr.Rmd) | [purrr](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/04-02-purrr/purrr.html) |
 
 ## Links
 
