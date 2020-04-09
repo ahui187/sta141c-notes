@@ -1,0 +1,199 @@
+---
+title: "Object oriented programming in R"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r, echo = FALSE}
+library("sloop")
+```
+
+## Objects in R
+
+We first need to talk about type of objects. Everthing in R are objects, but there are different types of objects.
+
+- Base types, such as integers, characters etc
+- S3, e.g., `data.frame`, `tibble`
+- S4, e.g., the matrices from `Matrix` package (getting less popular nowadays)
+- RC, e.g., not popular
+- R6, e.g., the state of the art OOP system
+
+
+We will use the `sloop` library to help us understand some internal R structures.
+
+
+### Base types
+```{r}
+otype(1:10)
+otype("a")
+```
+
+
+### S3
+```{r}
+otype(mtcars)
+s3_class(mtcars)
+```
+
+Objects of other types could also have S3 classes
+
+```{r}
+x <- matrix(1:2, nrow = 2, ncol = 2)
+otype(x)
+s3_class(x)
+```
+
+### S4
+```{r}
+library(Matrix)
+M <- Matrix(rnorm(12), 3, 4)
+otype(M)
+```
+
+```{r}
+M@Dim  # `@` is the signature of S4 objects
+```
+
+### R6
+
+```{r}
+# it is a package that we will learn later
+library(callr)
+```
+
+```{r}
+bg_task <- r_bg(function() Sys.sleep(1))
+otype(bg_task)
+```
+
+```{r}
+bg_task$is_alive()  # `$` to call methods
+```
+
+## OOP
+
+Orject oriented programming is a difficult topic. We will breifly discuss two concepts in OOP, i.e., polymorphism and encapsulation.
+
+
+### Polymorphism
+
+So what is it? Literally, it means many forms
+
+```{r}
+x <- rnorm(10)
+y <- rnorm(10)
+fit <- lm(y ~ x)
+```
+
+
+```{r}
+summary(x)
+```
+
+```{r}
+summary(fit)
+```
+
+In above, the function `summary` takes different form and dispatch different result based on the class of the input.
+
+```{r}
+otype(x)
+s3_class(x)
+```
+
+
+```{r}
+otype(fit)
+s3_class(fit)
+```
+
+
+`summary` is a generic function which dispatches other functions based on the class of the object.
+```{r}
+# list all the method dispatches of summary
+s3_methods_generic("summary")
+```
+
+#### Reuse exisiting generic
+
+
+`sum` is a generic function
+
+```{r}
+sum
+```
+
+We cannot sum up letters.
+```{r, error = TRUE}
+x <- c("a", "b", "c")
+sum(x)
+```
+
+```{r}
+class(x) <- "myclass"
+s3_class(x)
+```
+
+```{r}
+sum.myclass <- function(..., na.rm = FALSE) {
+  paste0(..., collapse = "")
+}
+```
+
+```{r}
+sum(x)
+```
+
+
+#### Create your own generic
+
+```{r}
+center <- function(x) {
+  UseMethod("center")
+}
+```
+
+Then we define two versions of center based on the class.
+```{r}
+center.foo <- function(x) {
+  mean(x, trim = 0.2)
+}
+
+center.bar <- function(x) {
+  mean(x)
+}
+```
+
+Fallback, if nothing works
+```{r}
+center.default <- function(x) {
+  median(x)
+}
+```
+
+
+
+```{r}
+a <- rnorm(10)
+class(a) <- "foo"
+center(a)  # 80% trim mean
+mean(a, trim = 0.2)
+```
+
+```{r}
+class(a) <- "bar"
+center(a)  # ordinary mean
+mean(a)
+```
+
+```{r}
+class(a) <- "anything"
+center(a)  # ordinary mean
+median(a)
+```
+
+
+# Reference
+
+Advanced R: https://adv-r.hadley.nz/oo.html

@@ -16,14 +16,16 @@ output:
 
 ## Material
 
-| Date          | Note             | HTML          
-| ----          | ----             | ----          
-| 03-31         | Introduction     | [introduction]
-| 04-02, 04-07  | [functional programming](04-02/purrr.Rmd)     | [purrr] |     
+| Date                | Note                                        | HTML
+| ----                | ----                                        | ----
+| 03-31               | Introduction                                | [introduction]
+| 04-02, 04-07, 04-09 | [functional programming](ch01/purrr.Rmd)    | [purrr]        |
+| 04-09, 04-14        | [object oriented programming](ch02/oop.Rmd) | [oop]          |
 
 
 [introduction]: README.md
-[purrr]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/04-02-purrr/purrr.html
+[purrr]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch01-purrr/purrr.html
+[oop]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch02-oop/oop.html
 
 ## Links
 
@@ -41,7 +43,7 @@ Learn how to ask a question. Asking a question is an art, [stackoverflow.com](ht
 | ------                             |
 | Introduction                       |
 | Functional programming             |
-| Object Oriental programming        |
+| Object Oriented programming        |
 | Debugging and profiling            |
 | Writing C and C++ extensions       |
 | Writing an R package               |
