@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r, echo = FALSE}
-library("sloop")
+library(sloop)
 ```
 
 ## Objects in R
@@ -24,9 +24,11 @@ We will use the `sloop` library to help us understand some internal R structures
 
 
 ### Base types
+
 ```{r}
 otype(1:10)
 otype("a")
+otype(mean)
 ```
 
 
@@ -35,6 +37,13 @@ otype("a")
 otype(mtcars)
 s3_class(mtcars)
 ```
+
+```{r}
+fit <- glm(mpg ~ wt, data = mtcars)
+otype(fit)
+s3_class(fit)
+```
+
 
 Objects of other types could also have S3 classes
 
@@ -63,7 +72,7 @@ library(callr)
 ```
 
 ```{r}
-bg_task <- r_bg(function() Sys.sleep(1))
+bg_task <- r_bg(function() Sys.sleep(60))
 otype(bg_task)
 ```
 
@@ -73,7 +82,7 @@ bg_task$is_alive()  # `$` to call methods
 
 ## OOP
 
-Orject oriented programming is a difficult topic. We will breifly discuss two concepts in OOP, i.e., polymorphism and encapsulation.
+Orject oriented programming is a difficult topic. We will breifly discuss two concepts in OOP, i.e., polymorphism (S3) and encapsulation (S4, R6).
 
 
 ### Polymorphism
@@ -86,16 +95,15 @@ y <- rnorm(10)
 fit <- lm(y ~ x)
 ```
 
-
 ```{r}
-summary(x)
+summary(x)   # summary.default(x)
 ```
 
 ```{r}
-summary(fit)
+summary(fit)  # summary.lm(fit)
 ```
 
-In above, the function `summary` takes different form and dispatch different result based on the class of the input.
+In above, the function `summary` takes different forms and dispatches different results based on the class of the input.
 
 ```{r}
 otype(x)
@@ -109,13 +117,15 @@ s3_class(fit)
 ```
 
 
+
+
 `summary` is a generic function which dispatches other functions based on the class of the object.
 ```{r}
 # list all the method dispatches of summary
 s3_methods_generic("summary")
 ```
 
-#### Reuse exisiting generic
+#### Reuse exsiting generic
 
 
 `sum` is a generic function

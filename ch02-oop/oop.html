@@ -412,6 +412,8 @@ summary {
 <pre><code>## [1] &quot;base&quot;</code></pre>
 <pre class="r"><code>otype(&quot;a&quot;)</code></pre>
 <pre><code>## [1] &quot;base&quot;</code></pre>
+<pre class="r"><code>otype(mean)</code></pre>
+<pre><code>## [1] &quot;base&quot;</code></pre>
 </div>
 <div id="s3" class="section level3">
 <h3>S3</h3>
@@ -419,6 +421,11 @@ summary {
 <pre><code>## [1] &quot;S3&quot;</code></pre>
 <pre class="r"><code>s3_class(mtcars)</code></pre>
 <pre><code>## [1] &quot;data.frame&quot;</code></pre>
+<pre class="r"><code>fit &lt;- glm(mpg ~ wt, data = mtcars)
+otype(fit)</code></pre>
+<pre><code>## [1] &quot;S3&quot;</code></pre>
+<pre class="r"><code>s3_class(fit)</code></pre>
+<pre><code>## [1] &quot;glm&quot; &quot;lm&quot;</code></pre>
 <p>Objects of other types could also have S3 classes</p>
 <pre class="r"><code>x &lt;- matrix(1:2, nrow = 2, ncol = 2)
 otype(x)</code></pre>
@@ -439,7 +446,7 @@ otype(M)</code></pre>
 <h3>R6</h3>
 <pre class="r"><code># it is a package that we will learn later
 library(callr)</code></pre>
-<pre class="r"><code>bg_task &lt;- r_bg(function() Sys.sleep(1))
+<pre class="r"><code>bg_task &lt;- r_bg(function() Sys.sleep(60))
 otype(bg_task)</code></pre>
 <pre><code>## [1] &quot;R6&quot;</code></pre>
 <pre class="r"><code>bg_task$is_alive()  # `$` to call methods</code></pre>
@@ -448,34 +455,36 @@ otype(bg_task)</code></pre>
 </div>
 <div id="oop" class="section level2">
 <h2>OOP</h2>
-<p>Orject oriented programming is a difficult topic. We will breifly discuss two concepts in OOP, i.e., polymorphism and encapsulation.</p>
+<p>Orject oriented programming is a difficult topic. We will breifly discuss two concepts in OOP, i.e., polymorphism (S3) and encapsulation (S4, R6).</p>
 <div id="polymorphism" class="section level3">
 <h3>Polymorphism</h3>
 <p>So what is it? Literally, it means many forms</p>
 <pre class="r"><code>x &lt;- rnorm(10)
 y &lt;- rnorm(10)
 fit &lt;- lm(y ~ x)</code></pre>
-<pre class="r"><code>summary(x)</code></pre>
+<pre class="r"><code>summary(x)   # summary.default(x)</code></pre>
 <pre><code>##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
-## -2.54863 -0.95092 -0.50794 -0.66204  0.01245  0.63851</code></pre>
-<pre class="r"><code>summary(fit)</code></pre>
+## -1.74971 -0.29746 -0.07746 -0.13132  0.35629  1.08534</code></pre>
+<pre class="r"><code>summary(fit)  # summary.lm(fit)</code></pre>
 <pre><code>## 
 ## Call:
 ## lm(formula = y ~ x)
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -1.4944 -0.7138  0.3495  0.4522  1.5089 
+## -1.0138 -0.6242 -0.1706  0.7613  1.0462 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)
-## (Intercept)  0.03021    0.37513   0.081    0.938
-## x            0.15475    0.31184   0.496    0.633
+##             Estimate Std. Error t value Pr(&gt;|t|)  
+## (Intercept)   0.5612     0.2604   2.155   0.0633 .
+## x             0.3061     0.3303   0.927   0.3811  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.9905 on 8 degrees of freedom
-## Multiple R-squared:  0.02986,    Adjusted R-squared:  -0.0914 
-## F-statistic: 0.2463 on 1 and 8 DF,  p-value: 0.6331</code></pre>
-<p>In above, the function <code>summary</code> takes different form and dispatch different result based on the class of the input.</p>
+## Residual standard error: 0.8121 on 8 degrees of freedom
+## Multiple R-squared:  0.09696,    Adjusted R-squared:  -0.01592 
+## F-statistic: 0.859 on 1 and 8 DF,  p-value: 0.3811</code></pre>
+<p>In above, the function <code>summary</code> takes different forms and dispatches different results based on the class of the input.</p>
 <pre class="r"><code>otype(x)</code></pre>
 <pre><code>## [1] &quot;base&quot;</code></pre>
 <pre class="r"><code>s3_class(x)</code></pre>
@@ -501,8 +510,8 @@ s3_methods_generic(&quot;summary&quot;)</code></pre>
 ##  9 summary ecdf                  FALSE   registered S3method
 ## 10 summary factor                TRUE    base               
 ## # … with 26 more rows</code></pre>
-<div id="reuse-exisiting-generic" class="section level4">
-<h4>Reuse exisiting generic</h4>
+<div id="reuse-exsiting-generic" class="section level4">
+<h4>Reuse exsiting generic</h4>
 <p><code>sum</code> is a generic function</p>
 <pre class="r"><code>sum</code></pre>
 <pre><code>## function (..., na.rm = FALSE)  .Primitive(&quot;sum&quot;)</code></pre>
@@ -539,19 +548,19 @@ center.bar &lt;- function(x) {
 <pre class="r"><code>a &lt;- rnorm(10)
 class(a) &lt;- &quot;foo&quot;
 center(a)  # 80% trim mean</code></pre>
-<pre><code>## [1] -0.5227136</code></pre>
+<pre><code>## [1] -0.02333404</code></pre>
 <pre class="r"><code>mean(a, trim = 0.2)</code></pre>
-<pre><code>## [1] -0.5227136</code></pre>
+<pre><code>## [1] -0.02333404</code></pre>
 <pre class="r"><code>class(a) &lt;- &quot;bar&quot;
 center(a)  # ordinary mean</code></pre>
-<pre><code>## [1] -0.3580712</code></pre>
+<pre><code>## [1] -0.13678</code></pre>
 <pre class="r"><code>mean(a)</code></pre>
-<pre><code>## [1] -0.3580712</code></pre>
+<pre><code>## [1] -0.13678</code></pre>
 <pre class="r"><code>class(a) &lt;- &quot;anything&quot;
 center(a)  # ordinary mean</code></pre>
-<pre><code>## [1] -0.3068543</code></pre>
+<pre><code>## [1] 0.05127431</code></pre>
 <pre class="r"><code>median(a)</code></pre>
-<pre><code>## [1] -0.3068543</code></pre>
+<pre><code>## [1] 0.05127431</code></pre>
 </div>
 </div>
 </div>
