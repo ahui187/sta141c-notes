@@ -27,10 +27,11 @@
 
 ## Material
 
-| Date         | Note                                      | HTML                                                                                    |
-| ------------ | ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| 03-31        | Introduction                              | [introduction](README.md)                                                               |
-| 04-02, 04-07 | [functional programming](04-02/purrr.Rmd) | [purrr](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/04-02-purrr/purrr.html) |
+| Date                | Note                                        | HTML                                                                                   |
+| ------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 03-31               | Introduction                                | [introduction](README.md)                                                              |
+| 04-02, 04-07, 04-09 | [functional programming](ch01/purrr.Rmd)    | [purrr](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch01-purrr/purrr.html) |
+| 04-09, 04-14        | [object oriented programming](ch02/oop.Rmd) | [oop](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch02-oop/oop.html)       |
 
 ## Links
 
@@ -56,7 +57,7 @@
 | ---------------------------------- |
 | Introduction                       |
 | Functional programming             |
-| Object Oriental programming        |
+| Object Oriented programming        |
 | Debugging and profiling            |
 | Writing C and C++ extensions       |
 | Writing an R package               |
