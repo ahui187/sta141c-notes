@@ -1,7 +1,7 @@
 ---
 title: "Functional programming in R"
 output: 
-  html_document: 
+  html_document:
     toc: yes
 ---
 
@@ -624,7 +624,7 @@ dat %>% expand(x, y)
 
 ### Reduce iterable
 
-The `reduce` function combines the values of a vector by iteratively applying a binary function.
+The `reduce` function combines the values of an iterable by iteratively applying a binary function.
 
 ```{r}
 x <- 1:4
@@ -634,6 +634,7 @@ x %>% reduce(`+`)
 # it means 1 + (2 + (3 + 4))
 ```
 
+
 It is usefully if we want to average data frames / matrices.
 
 ```{r}
@@ -642,8 +643,11 @@ matrices <- list(
   matrix(rnorm(9), nr = 3, nc = 3),
   matrix(rnorm(9), nr = 3, nc = 3)
 )
-matrices %>% reduce(`+`) %>% `/`(length(.))
+
+matrices %>% reduce(`+`) %>% `/`(length(matrices))
+matrices %>% {reduce(., `+`)/ length(.)}
 ```
+
 
 It is also useful if we wants to row bind。
 
@@ -663,12 +667,16 @@ ll %>% reduce(bind_rows)
 
 ## A example of linear regression
 
+
 ```{r}
 mtcars %>%
   nest(data = -cyl) %>% 
   mutate(model = map(data, ~ lm(mpg ~ wt, data = .))) %>%
-  transmute(r_sq = model %>% map(summary) %>% map_dbl("r.squared"))
+  transmute(cyl, r_sq = model %>% map(summary) %>% map_dbl("r.squared"))
+```
 
+
+```{r}
 # it is more readible
 mtcars %>%
   group_by(cyl) %>%
@@ -795,6 +803,24 @@ We end this chapter with several terminology.
     square <- pow(2)
     square(5)
     ```
+
+    ```{r}
+    pow2 <- function(k) {
+      function(x) {
+        x^k
+      }
+    }
+    h <- 2
+    square <- pow2(h)
+    h <- 3
+
+    # up to this point, k or h is not evaluated
+    square(2)  # 2^3
+
+    h <- 4
+    square(2)  # 2^3
+    ```
+
 - function operators
   - function that has function input(s) and returns a function. For examples, `lift`, `safely`.
 

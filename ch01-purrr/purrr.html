@@ -554,37 +554,37 @@ a[3]</code></pre>
 df &lt;- tibble(!!!rerun(4, rnorm(10)) %&gt;% set_names(letters[seq_len(length(.))]))</code></pre>
 <p>A naive way to do so</p>
 <pre class="r"><code>median(df$a)</code></pre>
-<pre><code>## [1] 0.01978186</code></pre>
+<pre><code>## [1] -0.326575</code></pre>
 <pre class="r"><code>median(df$b)</code></pre>
-<pre><code>## [1] 0.1187603</code></pre>
+<pre><code>## [1] 0.2931469</code></pre>
 <pre class="r"><code>median(df$c)</code></pre>
-<pre><code>## [1] 0.5149308</code></pre>
+<pre><code>## [1] 0.3167107</code></pre>
 <pre class="r"><code>median(df$d)</code></pre>
-<pre><code>## [1] -0.2765912</code></pre>
+<pre><code>## [1] 0.3275764</code></pre>
 <pre class="r"><code># a base R for loop
 output &lt;- vector(&quot;double&quot;, ncol(df)) # 1. output
 for (i in seq_along(df)) { # 2. sequence
   output[i] &lt;- median(df[[i]]) # 3. body
 }
 output</code></pre>
-<pre><code>## [1]  0.01978186  0.11876030  0.51493078 -0.27659118</code></pre>
+<pre><code>## [1] -0.3265750  0.2931469  0.3167107  0.3275764</code></pre>
 <div id="base-r-solution" class="section level3">
 <h3>Base R solution</h3>
 <pre class="r"><code>lapply(df, median)</code></pre>
 <pre><code>## $a
-## [1] 0.01978186
+## [1] -0.326575
 ## 
 ## $b
-## [1] 0.1187603
+## [1] 0.2931469
 ## 
 ## $c
-## [1] 0.5149308
+## [1] 0.3167107
 ## 
 ## $d
-## [1] -0.2765912</code></pre>
+## [1] 0.3275764</code></pre>
 <pre class="r"><code>sapply(df, median)</code></pre>
-<pre><code>##           a           b           c           d 
-##  0.01978186  0.11876030  0.51493078 -0.27659118</code></pre>
+<pre><code>##          a          b          c          d 
+## -0.3265750  0.2931469  0.3167107  0.3275764</code></pre>
 <p>These functions are great but they are not far less powerful then the next function <code>map</code>.</p>
 </div>
 </div>
@@ -601,16 +601,16 @@ output</code></pre>
 </ul>
 <pre class="r"><code>df %&gt;% map(median)</code></pre>
 <pre><code>## $a
-## [1] 0.01978186
+## [1] -0.326575
 ## 
 ## $b
-## [1] 0.1187603
+## [1] 0.2931469
 ## 
 ## $c
-## [1] 0.5149308
+## [1] 0.3167107
 ## 
 ## $d
-## [1] -0.2765912</code></pre>
+## [1] 0.3275764</code></pre>
 <p>Consider the following naive function which computes factorials</p>
 <pre class="r"><code>fac &lt;- function(n) {
   if (n == 1) {
@@ -648,69 +648,69 @@ fac(5)</code></pre>
 <p>computes trimed mean of the input.</p>
 <pre class="r"><code>df %&gt;% map(mean, trim = 0.5)</code></pre>
 <pre><code>## $a
-## [1] 0.01978186
+## [1] -0.326575
 ## 
 ## $b
-## [1] 0.1187603
+## [1] 0.2931469
 ## 
 ## $c
-## [1] 0.5149308
+## [1] 0.3167107
 ## 
 ## $d
-## [1] -0.2765912</code></pre>
+## [1] 0.3275764</code></pre>
 </div>
 <div id="inline-function-expressions" class="section level3">
 <h3>Inline function / expressions</h3>
 <pre class="r"><code>df %&gt;% map(function(x) x^2)</code></pre>
 <pre><code>## $a
-##  [1] 0.0367944534 3.3908013505 0.4488066787 7.4371381571 0.1079089708
-##  [6] 0.0006520353 0.0042378411 4.4398081984 0.3153364414 1.0791239456
+##  [1] 0.86920868 0.28453137 0.62700049 1.50020428 1.00094955 0.21321606
+##  [7] 0.16790735 5.59428957 0.05923629 0.05815400
 ## 
 ## $b
-##  [1] 2.113593895 2.767895414 0.035973420 5.790269592 0.103802998 0.002290005
-##  [7] 1.130354983 2.012640797 0.596766374 0.841022259
+##  [1] 0.01401538 0.10721495 2.86147207 0.29786561 0.09582361 2.79804749
+##  [7] 3.53635528 0.35686066 0.07658492 1.03189481
 ## 
 ## $c
-##  [1] 0.57484657 0.14098998 1.07742210 0.01692514 6.43250376 0.03486967
-##  [7] 0.93993706 0.42820693 3.03408402 0.39379314
+##  [1] 0.02800264 0.88380587 0.05173036 0.60792882 0.93081482 0.09231142
+##  [7] 0.10580797 0.56398370 0.13596116 0.10863186
 ## 
 ## $d
-##  [1] 0.049490274 0.066851222 1.766596767 0.156851587 0.002273364 0.138544741
-##  [7] 0.086804675 1.264464778 3.156579878 1.734928663</code></pre>
+##  [1] 0.98434450 0.01484234 1.00107258 3.28901308 0.84378937 0.82645793
+##  [7] 1.04823177 0.72639536 0.01207246 0.28443419</code></pre>
 <p>or</p>
 <pre class="r"><code>df %&gt;% map(function(.) .^2)</code></pre>
 <pre><code>## $a
-##  [1] 0.0367944534 3.3908013505 0.4488066787 7.4371381571 0.1079089708
-##  [6] 0.0006520353 0.0042378411 4.4398081984 0.3153364414 1.0791239456
+##  [1] 0.86920868 0.28453137 0.62700049 1.50020428 1.00094955 0.21321606
+##  [7] 0.16790735 5.59428957 0.05923629 0.05815400
 ## 
 ## $b
-##  [1] 2.113593895 2.767895414 0.035973420 5.790269592 0.103802998 0.002290005
-##  [7] 1.130354983 2.012640797 0.596766374 0.841022259
+##  [1] 0.01401538 0.10721495 2.86147207 0.29786561 0.09582361 2.79804749
+##  [7] 3.53635528 0.35686066 0.07658492 1.03189481
 ## 
 ## $c
-##  [1] 0.57484657 0.14098998 1.07742210 0.01692514 6.43250376 0.03486967
-##  [7] 0.93993706 0.42820693 3.03408402 0.39379314
+##  [1] 0.02800264 0.88380587 0.05173036 0.60792882 0.93081482 0.09231142
+##  [7] 0.10580797 0.56398370 0.13596116 0.10863186
 ## 
 ## $d
-##  [1] 0.049490274 0.066851222 1.766596767 0.156851587 0.002273364 0.138544741
-##  [7] 0.086804675 1.264464778 3.156579878 1.734928663</code></pre>
+##  [1] 0.98434450 0.01484234 1.00107258 3.28901308 0.84378937 0.82645793
+##  [7] 1.04823177 0.72639536 0.01207246 0.28443419</code></pre>
 <p>or simply</p>
 <pre class="r"><code>df %&gt;% map(~ .^2)</code></pre>
 <pre><code>## $a
-##  [1] 0.0367944534 3.3908013505 0.4488066787 7.4371381571 0.1079089708
-##  [6] 0.0006520353 0.0042378411 4.4398081984 0.3153364414 1.0791239456
+##  [1] 0.86920868 0.28453137 0.62700049 1.50020428 1.00094955 0.21321606
+##  [7] 0.16790735 5.59428957 0.05923629 0.05815400
 ## 
 ## $b
-##  [1] 2.113593895 2.767895414 0.035973420 5.790269592 0.103802998 0.002290005
-##  [7] 1.130354983 2.012640797 0.596766374 0.841022259
+##  [1] 0.01401538 0.10721495 2.86147207 0.29786561 0.09582361 2.79804749
+##  [7] 3.53635528 0.35686066 0.07658492 1.03189481
 ## 
 ## $c
-##  [1] 0.57484657 0.14098998 1.07742210 0.01692514 6.43250376 0.03486967
-##  [7] 0.93993706 0.42820693 3.03408402 0.39379314
+##  [1] 0.02800264 0.88380587 0.05173036 0.60792882 0.93081482 0.09231142
+##  [7] 0.10580797 0.56398370 0.13596116 0.10863186
 ## 
 ## $d
-##  [1] 0.049490274 0.066851222 1.766596767 0.156851587 0.002273364 0.138544741
-##  [7] 0.086804675 1.264464778 3.156579878 1.734928663</code></pre>
+##  [1] 0.98434450 0.01484234 1.00107258 3.28901308 0.84378937 0.82645793
+##  [7] 1.04823177 0.72639536 0.01207246 0.28443419</code></pre>
 </div>
 <div id="name-and-position-shortcuts" class="section level3">
 <h3>Name and position shortcuts</h3>
@@ -718,16 +718,16 @@ fac(5)</code></pre>
 <pre class="r"><code># extract first elelment from each column
 df %&gt;% map(1)</code></pre>
 <pre><code>## $a
-## [1] 0.1918188
+## [1] -0.9323136
 ## 
 ## $b
-## [1] 1.45382
+## [1] -0.1183866
 ## 
 ## $c
-## [1] 0.7581864
+## [1] 0.1673399
 ## 
 ## $d
-## [1] -0.2224641</code></pre>
+## [1] 0.9921414</code></pre>
 <pre class="r"><code>roster &lt;- list(
   list(name = &quot;Peter&quot;, id = 1231, grades = list(STA141A = &quot;A&quot;, STA141B = &quot;A&quot;), hobbies = c(&quot;Math&quot;, &quot;Stat&quot;)),
   list(name = &quot;Mary&quot;,  id = 4213, grades = list(STA141A = &quot;B&quot;, STA141B = &quot;B&quot;), hobbies = c(&quot;Math&quot;, &quot;Chem&quot;))
@@ -765,7 +765,7 @@ df %&gt;% map(1)</code></pre>
 </ul>
 <pre class="r"><code>df %&gt;% map_dbl(mean)</code></pre>
 <pre><code>##          a          b          c          d 
-## -0.2159470  0.2812730  0.2056805 -0.1241367</code></pre>
+## -0.3070396  0.0815636  0.2492954  0.2352298</code></pre>
 <pre class="r"><code>1:5 %&gt;% map_int(fac)</code></pre>
 <pre><code>## [1]   1   2   6  24 120</code></pre>
 <pre class="r"><code>1:5 %&gt;% map_lgl(~ . == 2L)</code></pre>
@@ -899,7 +899,7 @@ a_to_e %&gt;% pluck(&quot;lowers&quot;) # equivalent to a_to_e[&quot;lowers&quot
 <p>Unlike <code>map()</code> and its variants which always return a fixed object type, the <code>modify()</code> family always returns the same type as the input object.</p>
 <pre class="r"><code>x &lt;- rnorm(5)
 x %&gt;% modify(square)</code></pre>
-<pre><code>## [1] 0.58570787 0.01191177 7.54913897 1.65602525 0.32058206</code></pre>
+<pre><code>## [1] 2.5354457 0.0078939 1.3647464 1.5174643 0.4354088</code></pre>
 <pre class="r"><code># it doesn&#39;t work because 1:5 is an integer vector, while `square` produces double
 # 1:5 %&gt;% modify(square)
 as.double(1:5) %&gt;% modify(square)</code></pre>
@@ -1237,7 +1237,7 @@ dat %&gt;% cross_df()</code></pre>
 </div>
 <div id="reduce-iterable" class="section level3">
 <h3>Reduce iterable</h3>
-<p>The <code>reduce</code> function combines the values of a vector by iteratively applying a binary function.</p>
+<p>The <code>reduce</code> function combines the values of an iterable by iteratively applying a binary function.</p>
 <pre class="r"><code>x &lt;- 1:4
 x %&gt;% reduce(`+`)</code></pre>
 <pre><code>## [1] 10</code></pre>
@@ -1251,11 +1251,17 @@ x %&gt;% reduce(`+`)</code></pre>
   matrix(rnorm(9), nr = 3, nc = 3),
   matrix(rnorm(9), nr = 3, nc = 3)
 )
-matrices %&gt;% reduce(`+`) %&gt;% `/`(length(.))</code></pre>
+
+matrices %&gt;% reduce(`+`) %&gt;% `/`(length(matrices))</code></pre>
 <pre><code>##            [,1]        [,2]       [,3]
-## [1,]  0.2824591 -0.29669106  0.1038984
-## [2,] -0.3477254  0.09619005  0.1406002
-## [3,]  0.1536736 -0.14978600 -0.3014066</code></pre>
+## [1,] -0.5428883 -0.01423609  0.3598504
+## [2,]  0.4502341  0.71678672 -0.1503655
+## [3,]  0.1850179 -0.55756527 -0.6339875</code></pre>
+<pre class="r"><code>matrices %&gt;% {reduce(., `+`)/ length(.)}</code></pre>
+<pre><code>##            [,1]        [,2]       [,3]
+## [1,] -0.5428883 -0.01423609  0.3598504
+## [2,]  0.4502341  0.71678672 -0.1503655
+## [3,]  0.1850179 -0.55756527 -0.6339875</code></pre>
 <p>It is also useful if we wants to row bind。</p>
 <pre class="r"><code>ll &lt;- list(
   c(name = &quot;Peter&quot;, age = 23),
@@ -1263,16 +1269,11 @@ matrices %&gt;% reduce(`+`) %&gt;% `/`(length(.))</code></pre>
   c(name = &quot;Mary&quot;, age = 22)
 )</code></pre>
 <pre class="r"><code>bind_rows(ll)  #  it only works in dplyr 1.0</code></pre>
-<pre><code>## # A tibble: 3 x 2
-##   name  age  
-## * &lt;chr&gt; &lt;chr&gt;
-## 1 Peter 23   
-## 2 Paul  19   
-## 3 Mary  22</code></pre>
+<pre><code>## Error: Argument 1 must have names</code></pre>
 <pre class="r"><code>ll %&gt;% reduce(bind_rows)</code></pre>
 <pre><code>## # A tibble: 3 x 2
 ##   name  age  
-## * &lt;chr&gt; &lt;chr&gt;
+##   &lt;chr&gt; &lt;chr&gt;
 ## 1 Peter 23   
 ## 2 Paul  19   
 ## 3 Mary  22</code></pre>
@@ -1283,13 +1284,13 @@ matrices %&gt;% reduce(`+`) %&gt;% `/`(length(.))</code></pre>
 <pre class="r"><code>mtcars %&gt;%
   nest(data = -cyl) %&gt;% 
   mutate(model = map(data, ~ lm(mpg ~ wt, data = .))) %&gt;%
-  transmute(r_sq = model %&gt;% map(summary) %&gt;% map_dbl(&quot;r.squared&quot;))</code></pre>
-<pre><code>## # A tibble: 3 x 1
-##    r_sq
-##   &lt;dbl&gt;
-## 1 0.465
-## 2 0.509
-## 3 0.423</code></pre>
+  transmute(cyl, r_sq = model %&gt;% map(summary) %&gt;% map_dbl(&quot;r.squared&quot;))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##     cyl  r_sq
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1     6 0.465
+## 2     4 0.509
+## 3     8 0.423</code></pre>
 <pre class="r"><code># it is more readible
 mtcars %&gt;%
   group_by(cyl) %&gt;%
@@ -1406,7 +1407,22 @@ echo(it + does - not == have * to / make ^ sense)</code></pre>
 }
 square &lt;- pow(2)
 square(5)</code></pre>
-<pre><code>## [1] 25</code></pre></li>
+<pre><code>## [1] 25</code></pre>
+<pre class="r"><code>pow2 &lt;- function(k) {
+  function(x) {
+    x^k
+  }
+}
+h &lt;- 2
+square &lt;- pow2(h)
+h &lt;- 3
+
+# up to this point, k or h is not evaluated
+square(2)  # 2^3</code></pre>
+<pre><code>## [1] 8</code></pre>
+<pre class="r"><code>h &lt;- 4
+square(2)  # 2^3</code></pre>
+<pre><code>## [1] 8</code></pre></li>
 </ul></li>
 <li>function operators
 <ul>
