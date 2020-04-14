@@ -295,7 +295,7 @@ center(b)  # center.default(b); median(b)
 ```
 
 
-## Encapsulation
+### Encapsulation
 
 R6 has two special properties:
 
@@ -342,7 +342,7 @@ x$sum
 ```
 
 
-### Method chaining
+#### Method chaining
 
 Side-effect R6 methods should always return self invisibly. This returns the "current" object and makes it possible to chain together multiple method calls:
 
@@ -358,7 +358,7 @@ x$
   sum
 ```
 
-### Initialization
+#### Initialization
 
 `$initialize()` overrides the default behaviour of `$new()`. 
 For example, the following code defines an Person class with fields `$name` and `$age`.
@@ -388,7 +388,7 @@ randy
 randy <- Person$new("Randy", "thirth-three")
 ```
 
-### Printing
+#### Printing
 
 The `$print` method allows you to override the default printing behaviour.
 
@@ -417,7 +417,7 @@ randy <- Person$new("Randy", 33)
 randy
 ```
 
-### Mutability
+#### Mutability
 
 Unlikes most R objects, R6 objects are mutable.
 
@@ -446,7 +446,7 @@ randy$age
 ```
 PS: `$clone()` does not recursively clone nested R6 objects. If you want that, you’ll need to use `$clone(deep = TRUE)`
 
-### Mutable default argument
+#### Mutable default argument
 
 A similar issue could be raised in Python.
 
@@ -541,7 +541,7 @@ cafe$owner
 ```
 
 
-### Finalizer
+#### Finalizer
 
 Since R6 is mutable in nature, it is useful to have a `$finalizer()` method called after all the references to an object are destroyed.
 

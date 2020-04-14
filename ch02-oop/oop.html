@@ -390,15 +390,7 @@ summary {
 <li><a href="#oop">OOP</a>
 <ul>
 <li><a href="#polymorphism">Polymorphism</a></li>
-</ul></li>
-<li><a href="#encapsulation">Encapsulation</a>
-<ul>
-<li><a href="#method-chaining">Method chaining</a></li>
-<li><a href="#initialization">Initialization</a></li>
-<li><a href="#printing">Printing</a></li>
-<li><a href="#mutability">Mutability</a></li>
-<li><a href="#mutable-default-argument">Mutable default argument</a></li>
-<li><a href="#finalizer">Finalizer</a></li>
+<li><a href="#encapsulation">Encapsulation</a></li>
 </ul></li>
 <li><a href="#reference">Reference</a></li>
 </ul>
@@ -471,25 +463,25 @@ otype(bg_task)</code></pre>
 y &lt;- rnorm(10)
 fit &lt;- lm(y ~ x)</code></pre>
 <pre class="r"><code>summary(x) # summary.default(x)</code></pre>
-<pre><code>##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
-## -1.70710 -0.60208 -0.08913  0.18456  0.76868  2.45616</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## -0.9953 -0.3020  0.1805  0.2926  0.6327  2.5453</code></pre>
 <pre class="r"><code>summary(fit) # summary.lm(fit)</code></pre>
 <pre><code>## 
 ## Call:
 ## lm(formula = y ~ x)
 ## 
 ## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -1.4319 -0.8135 -0.6123  0.9846  2.6921 
+##      Min       1Q   Median       3Q      Max 
+## -1.51175 -0.26772  0.02381  0.47586  0.97470 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(&gt;|t|)
-## (Intercept)   0.4326     0.4563   0.948    0.371
-## x            -0.2472     0.3683  -0.671    0.521
+## (Intercept)  0.10582    0.25083   0.422    0.684
+## x            0.03134    0.24869   0.126    0.903
 ## 
-## Residual standard error: 1.427 on 8 degrees of freedom
-## Multiple R-squared:  0.0533, Adjusted R-squared:  -0.06503 
-## F-statistic: 0.4504 on 1 and 8 DF,  p-value: 0.521</code></pre>
+## Residual standard error: 0.7591 on 8 degrees of freedom
+## Multiple R-squared:  0.001982,   Adjusted R-squared:  -0.1228 
+## F-statistic: 0.01589 on 1 and 8 DF,  p-value: 0.9028</code></pre>
 <p>In above, the function <code>summary</code> takes different forms and dispatches different results based on the class of the input.</p>
 <pre class="r"><code>otype(x)</code></pre>
 <pre><code>## [1] &quot;base&quot;</code></pre>
@@ -637,27 +629,26 @@ center.symmetric &lt;- function(x) {
 <pre class="r"><code>a &lt;- rnorm(10)
 class(a) &lt;- &quot;skewed&quot;
 center(a) # 80% trim mean:  center.skewed(a)</code></pre>
-<pre><code>## [1] -0.233282</code></pre>
+<pre><code>## [1] 0.1759548</code></pre>
 <pre class="r"><code>mean(a, trim = 0.2)</code></pre>
-<pre><code>## [1] -0.233282</code></pre>
+<pre><code>## [1] 0.1759548</code></pre>
 <pre class="r"><code>class(a) &lt;- &quot;symmetric&quot;
 center(a) # ordinary mean:  center.symmetric(a)</code></pre>
-<pre><code>## [1] -0.04484579</code></pre>
+<pre><code>## [1] 0.1166054</code></pre>
 <pre class="r"><code>mean(a)</code></pre>
-<pre><code>## [1] -0.04484579</code></pre>
+<pre><code>## [1] 0.1166054</code></pre>
 <pre class="r"><code>class(a) &lt;- &quot;anything_else&quot;
 center(a) # median</code></pre>
-<pre><code>## [1] -0.4510986</code></pre>
+<pre><code>## [1] 0.04945357</code></pre>
 <pre class="r"><code>median(a)</code></pre>
-<pre><code>## [1] -0.4510986</code></pre>
+<pre><code>## [1] 0.04945357</code></pre>
 <pre class="r"><code>b &lt;- rnorm(10)
 center(b)  # center.default(b); median(b)</code></pre>
-<pre><code>## [1] -0.3332027</code></pre>
+<pre><code>## [1] -0.05848209</code></pre>
 </div>
 </div>
-</div>
-<div id="encapsulation" class="section level2">
-<h2>Encapsulation</h2>
+<div id="encapsulation" class="section level3">
+<h3>Encapsulation</h3>
 <p>R6 has two special properties:</p>
 <ul>
 <li>It uses the encapsulated OOP paradigm, which means that methods belong to objects, not generics, and you call them like <code>object$method()</code>.</li>
@@ -685,8 +676,8 @@ center(b)  # center.default(b); median(b)</code></pre>
 <pre class="r"><code>x$add(4)</code></pre>
 <pre class="r"><code>x$sum</code></pre>
 <pre><code>## [1] 4</code></pre>
-<div id="method-chaining" class="section level3">
-<h3>Method chaining</h3>
+<div id="method-chaining" class="section level4">
+<h4>Method chaining</h4>
 <p>Side-effect R6 methods should always return self invisibly. This returns the “current” object and makes it possible to chain together multiple method calls:</p>
 <pre class="r"><code>x$add(10)$add(10)$sum</code></pre>
 <pre><code>## [1] 24</code></pre>
@@ -697,8 +688,8 @@ center(b)  # center.default(b); median(b)</code></pre>
   sum</code></pre>
 <pre><code>## [1] 44</code></pre>
 </div>
-<div id="initialization" class="section level3">
-<h3>Initialization</h3>
+<div id="initialization" class="section level4">
+<h4>Initialization</h4>
 <p><code>$initialize()</code> overrides the default behaviour of <code>$new()</code>. For example, the following code defines an Person class with fields <code>$name</code> and <code>$age</code>.</p>
 <pre class="r"><code>Person &lt;- R6::R6Class(
   &quot;Person&quot;, 
@@ -724,8 +715,8 @@ randy</code></pre>
 <pre class="r"><code>randy &lt;- Person$new(&quot;Randy&quot;, &quot;thirth-three&quot;)</code></pre>
 <pre><code>## Error in .subset2(public_bind_env, &quot;initialize&quot;)(...): is.numeric(age) is not TRUE</code></pre>
 </div>
-<div id="printing" class="section level3">
-<h3>Printing</h3>
+<div id="printing" class="section level4">
+<h4>Printing</h4>
 <p>The <code>$print</code> method allows you to override the default printing behaviour.</p>
 <pre class="r"><code>Person &lt;- R6::R6Class(
   &quot;Person&quot;, 
@@ -750,8 +741,8 @@ randy</code></pre>
 ##   Name: Randy
 ##   Age:  33</code></pre>
 </div>
-<div id="mutability" class="section level3">
-<h3>Mutability</h3>
+<div id="mutability" class="section level4">
+<h4>Mutability</h4>
 <p>Unlikes most R objects, R6 objects are mutable.</p>
 <pre class="r"><code># list is immutable
 randy &lt;- list(name = &quot;Randy&quot;, age = 33)
@@ -773,8 +764,8 @@ randy$age</code></pre>
 <pre><code>## [1] 33</code></pre>
 <p>PS: <code>$clone()</code> does not recursively clone nested R6 objects. If you want that, you’ll need to use <code>$clone(deep = TRUE)</code></p>
 </div>
-<div id="mutable-default-argument" class="section level3">
-<h3>Mutable default argument</h3>
+<div id="mutable-default-argument" class="section level4">
+<h4>Mutable default argument</h4>
 <p>A similar issue could be raised in Python.</p>
 <pre class="python"><code>class Foo():
   x = []
@@ -837,10 +828,11 @@ cafe &lt;- Store$new()</code></pre>
 ##   Name: Randy
 ##   Age:  NA</code></pre>
 </div>
-<div id="finalizer" class="section level3">
-<h3>Finalizer</h3>
+<div id="finalizer" class="section level4">
+<h4>Finalizer</h4>
 <p>Since R6 is mutable in nature, it is useful to have a <code>$finalizer()</code> method called after all the references to an object are destroyed.</p>
 <p>See <a href="https://adv-r.hadley.nz/r6.html#finalizer" class="uri">https://adv-r.hadley.nz/r6.html#finalizer</a></p>
+</div>
 </div>
 </div>
 <div id="reference" class="section level1">
