@@ -25,44 +25,45 @@ We will use the `sloop` library to help us understand some internal R structures
 
 ### Base types
 
+`otype` shows the type of an object.
+
 ```{r}
 otype(1:10)
 otype("a")
-otype(mean)
+```
+
+```{r}
+x <- matrix(1:2, nrow = 2, ncol = 2)
+otype(x)
 ```
 
 
 ### S3
 ```{r}
 otype(mtcars)
-s3_class(mtcars)
+class(mtcars)
 ```
 
 ```{r}
 fit <- lm(mpg ~ wt, data = mtcars)
 otype(fit)
-s3_class(fit)
-```
-
-
-Objects of other types could also have S3 classes
-
-```{r}
-x <- matrix(1:2, nrow = 2, ncol = 2)
-otype(x)
-s3_class(x)
+class(fit)
 ```
 
 ### S4
 ```{r}
-library(Matrix)
-M <- Matrix(rnorm(12), 3, 4)
+M <- Matrix::Matrix(rnorm(12), 3, 4)
 otype(M)
 ```
 
 ```{r}
-M@Dim  # `@` is the signature of S4 objects
+M@Dim # `@` is the signature of S4 objects
 ```
+
+```{r}
+class(M)
+```
+
 
 ### R6
 
@@ -77,12 +78,12 @@ otype(bg_task)
 ```
 
 ```{r}
-bg_task$is_alive()  # `$` to call methods
+bg_task$is_alive() # `$` to call methods
 ```
 
 ## OOP
 
-Orject oriented programming is a difficult topic. We will breifly discuss two concepts in OOP, i.e., polymorphism (S3) and encapsulation (S4, R6).
+Orject oriented programming is a difficult topic. We will breifly discuss two concepts in OOP, i.e., polymorphism (S3/S4) and encapsulation (R6).
 
 
 ### Polymorphism
@@ -96,28 +97,23 @@ fit <- lm(y ~ x)
 ```
 
 ```{r}
-summary(x)   # summary.default(x)
+summary(x) # summary.default(x)
 ```
 
 ```{r}
-summary(fit)  # summary.lm(fit)
+summary(fit) # summary.lm(fit)
 ```
 
 In above, the function `summary` takes different forms and dispatches different results based on the class of the input.
 
 ```{r}
 otype(x)
-s3_class(x)
 ```
-
 
 ```{r}
 otype(fit)
-s3_class(fit)
+class(fit)
 ```
-
-
-
 
 `summary` is a generic function which dispatches other functions based on the class of the object.
 ```{r}
@@ -125,36 +121,74 @@ s3_class(fit)
 s3_methods_generic("summary")
 ```
 
-#### Reuse exsiting generic
+#### Extend existing generic
 
-
-`sum` is a generic function
-
+Check if a function is generic
 ```{r}
-sum
+# `length` is a primitive generic function
+ftype(length)
+```
+```{r}
+# `mean` is a S3 generic function
+ftype(mean)
+```
+```{r}
+# lm is not generic
+ftype(lm)
 ```
 
-We cannot sum up letters.
+
+As `length` is a primitive generic function, it dispatches different versions of `length` for different inputs.
+
+```{r}
+s3_methods_generic("length")
+```
+
+
+`length` returns the length of a vector, not the string length
 ```{r, error = TRUE}
-x <- c("a", "b", "c")
-sum(x)
+s <- "it is long string"
+length(s)
 ```
 
+The method should extend the signatures of the generic.
 ```{r}
-class(x) <- "myclass"
-s3_class(x)
-```
-
-```{r}
-sum.myclass <- function(..., na.rm = FALSE) {
-  paste0(..., collapse = "")
+# To define a `sum` method for `myclass`.
+length.string <- function(x) {
+  nchar(x)
 }
 ```
 
 ```{r}
-sum(x)
+s <- structure("it is long string", class = "string")
+# it is the same as
+# s <- "it is long string"
+# class(s) <- "string"
+
+length(s) # string length
 ```
 
+
+##### Difference between primitive and S3 generic function.
+
+- primitive generic cannot be extended to base types. For example, we cannot extend `sum` for `character` objects because `sum` is primitive.
+
+- On the other hand, S3 could be extended to base types. 
+
+```{r}
+mean.character <- function(x, na.rm = FALSE, ...) {
+  # please ignore the implmentation detail here
+  # it is just a way to define mean for letters
+  intToUtf8(round(mean(sapply(x, utf8ToInt), na.rm = na.rm)))
+}
+mean(c("A", "G", "H"))
+```
+
+```{r}
+# without the extension
+rm(mean.character)
+mean(c("A", "G", "H"))
+```
 
 #### Create your own generic
 
@@ -166,11 +200,11 @@ center <- function(x) {
 
 Then we define two versions of center based on the class.
 ```{r}
-center.foo <- function(x) {
+center.skewed <- function(x) {
   mean(x, trim = 0.2)
 }
 
-center.bar <- function(x) {
+center.symmetric <- function(x) {
   mean(x)
 }
 ```
@@ -183,25 +217,219 @@ center.default <- function(x) {
 ```
 
 
-
 ```{r}
 a <- rnorm(10)
-class(a) <- "foo"
-center(a)  # 80% trim mean
+class(a) <- "skewed"
+center(a) # 80% trim mean
 mean(a, trim = 0.2)
 ```
 
 ```{r}
-class(a) <- "bar"
-center(a)  # ordinary mean
+class(a) <- "symmetric"
+center(a) # ordinary mean
 mean(a)
 ```
 
 ```{r}
-class(a) <- "anything"
-center(a)  # ordinary mean
+class(a) <- "anything_else"
+center(a) # median
 median(a)
 ```
+
+## Encapsulation
+
+
+R6 has two special properties:
+
+- It uses the encapsulated OOP paradigm, which means that methods belong to objects, not generics, and you call them like `object$method()`.
+- R6 objects are mutable, which means that they are modified in place, and hence have reference semantics.
+ 
+
+R6Class is not defined in base R, it is located in the package `R6`. There only one function
+that we would ever use `R6::R6Class`.
+
+A R6 class provides a general structure of an R6 object.
+The following example shows the two most important arguments to `R6Class()`
+
+- The first argument is the classname. It’s not strictly needed, 
+- The second argument, `public`, supplies a list of methods (functions) and fields (anything else) that make up the public interface of the object. Methods can access the methods and fields of the current object via `self$`.
+
+```{r}
+Accumulator <- R6::R6Class(
+  "Accumulator",
+  public = list(
+    sum = 0,
+    add = function(x = 1) {
+      self$sum <- self$sum + x
+      invisible(self)
+    }
+  )
+)
+```
+
+You construct a new object from the class by calling the `new()` method. 
+
+```{r}
+x <- Accumulator$new()
+```
+
+You can then call methods and access fields with `$`:
+```{r}
+x$add(4)
+x$sum
+```
+
+
+### Method chaining
+
+Side-effect R6 methods should always return self invisibly. This returns the "current" object and makes it possible to chain together multiple method calls:
+
+```{r}
+x$add(10)$add(10)$sum
+```
+
+For readability
+```{r}
+x$
+  add(10)$
+  add(10)$
+  sum
+```
+
+### Initialization
+
+
+`$initialize()` overrides the default behaviour of `$new()`. 
+For example, the following code defines an Person class with fields `$name` and `$age`.
+
+```{r}
+Person <- R6::R6Class("Person", 
+  public = list(
+    name = NULL,
+    age = NA,
+    initialize = function(name, age = NA) {
+      stopifnot(is.character(name), length(name) == 1)
+      stopifnot(is.numeric(age), length(age) == 1)
+      
+      self$name <- name
+      self$age <- age
+    }
+  )
+)
+```
+
+```{r}
+randy <- Person$new("Randy", 33)
+randy
+```
+
+```{r, error = TRUE}
+randy <- Person$new("Randy", "thirth-three")
+```
+
+### Printing
+
+The `$print` method allows you to override the default printing behaviour.
+
+```{r}
+Person <- R6::R6Class("Person", 
+  public = list(
+    name = NULL,
+    age = NA,
+    initialize = function(name, age = NA) {
+      self$name <- name
+      self$age <- age
+    },
+    print = function(...) {
+      cat("Person: \n")
+      cat("  Name: ", self$name, "\n", sep = "")
+      cat("  Age:  ", self$age, "\n", sep = "")
+      invisible(self)
+    }
+  )
+)
+```
+
+```{r}
+randy <- Person$new("Randy", 33)
+randy
+```
+
+### Mutability
+
+Unlikes most R objects, R6 objects are mutable.
+
+```{r}
+# list is immutable
+randy <- list(name = "Randy", age = 33)
+randy_second <- randy
+randy_second$age <- 18
+randy$age
+```
+
+```{r}
+# R6 object is mutable
+randy <- Person$new("Randy", 33)
+randy_second <- randy
+randy_second$age <- 18
+randy$age
+```
+
+To make a clone, we need to use the `$clone` method
+```{r}
+randy <- Person$new("Randy", 33)
+randy_second <- randy$clone()
+randy_second$age <- 18
+randy$age
+```
+PS: `$clone()` does not recursively clone nested R6 objects. If you want that, you’ll need to use `$clone(deep = TRUE)`
+
+### Finalizer
+
+Since R6 is mutable in nature, it is useful to have a `$finalizer()` method called after all the references to an object are destroyed.
+
+See https://adv-r.hadley.nz/r6.html#finalizer
+
+### Mutable default argument
+
+```{r}
+Company <- R6::R6Class(
+  "Person", 
+  public = list(
+    owner = Person$new("Randy"),
+    transfer = function(name) {
+      self$owner$name <- name
+      invisible(self)
+    }
+  )
+)
+```
+
+```{r}
+bookstore <- Company$new()
+cafe <- Company$new()
+```
+
+```{r}
+bookstore$transfer("John")
+```
+
+Since both `bookstore` and `cafe` have the same object `Person$new("Randy")`, the owner name of `cafe` is also changed.
+
+```{r}
+cafe$owner
+```
+
+A similar issue could be raised in Python.
+
+
+```{python}
+class Foo():
+  x = []
+  def add(self, y):
+    self.x.append(y)
+```
+
 
 
 # Reference
