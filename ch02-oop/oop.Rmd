@@ -121,6 +121,14 @@ class(fit)
 s3_methods_generic("summary")
 ```
 
+Another example of dispatching
+```{r}
+ta <- table(mtcars$cyl, mtcars$am)
+otype(ta)
+summary(ta)  # summary.table(ta)
+```
+
+
 #### Extend existing generic
 
 Check if a function is generic
@@ -135,6 +143,7 @@ ftype(mean)
 ```{r}
 # lm is not generic
 ftype(lm)
+fit <- lm(mpg ~ wt , data = mtcars)
 ```
 
 
@@ -148,12 +157,13 @@ s3_methods_generic("length")
 `length` returns the length of a vector, not the string length
 ```{r, error = TRUE}
 s <- "it is long string"
+otype(s)
 length(s)
 ```
 
 The method should extend the signatures of the generic.
 ```{r}
-# To define a `sum` method for `myclass`.
+# To define a `length` method for `string`.
 length.string <- function(x) {
   nchar(x)
 }
@@ -164,16 +174,55 @@ s <- structure("it is long string", class = "string")
 # it is the same as
 # s <- "it is long string"
 # class(s) <- "string"
+otype(s)
+class(s)
+length(s) # length.string(s)
+```
 
-length(s) # string length
+Another example, "print" function for string
+
+```{r}
+ftype(print)
+```
+```{r}
+print.string <- function(x, ..., max_length = 40) {
+  cat(stringr::str_trunc(x, max_length))
+  cat("\n")
+}
+```
+
+```{r}
+s <- structure("it is long string jflkdj aflkjdklafj kldasjf fdasjklfjdlkas fdajflkdas", class = "string")
+s
+print(s, max_length = 60)
 ```
 
 
 ##### Difference between primitive and S3 generic function.
 
-- primitive generic cannot be extended to base types. For example, we cannot extend `sum` for `character` objects because `sum` is primitive.
+- primitive generic cannot be extended to base types.
+
+```{r}
+otype(LETTERS)
+ftype(sum)
+```
+```{r, error = TRUE}
+sum(LETTERS)
+```
+
+```{r, echo = FALSE}
+# it is not possible, we cannot extend `sum` for `character` objects 
+# because `sum` is primitive and `character` is base class
+sum.character <- function(..) {
+  
+}
+```
 
 - On the other hand, S3 could be extended to base types. 
+
+```{r}
+ftype(mean)
+```
 
 ```{r}
 mean.character <- function(x, na.rm = FALSE, ...) {
@@ -198,6 +247,10 @@ center <- function(x) {
 }
 ```
 
+```{r}
+ftype(center)
+```
+
 Then we define two versions of center based on the class.
 ```{r}
 center.skewed <- function(x) {
@@ -220,13 +273,13 @@ center.default <- function(x) {
 ```{r}
 a <- rnorm(10)
 class(a) <- "skewed"
-center(a) # 80% trim mean
+center(a) # 80% trim mean:  center.skewed(a)
 mean(a, trim = 0.2)
 ```
 
 ```{r}
 class(a) <- "symmetric"
-center(a) # ordinary mean
+center(a) # ordinary mean:  center.symmetric(a)
 mean(a)
 ```
 
@@ -236,16 +289,21 @@ center(a) # median
 median(a)
 ```
 
-## Encapsulation
+```{r}
+b <- rnorm(10)
+center(b)  # center.default(b); median(b)
+```
 
+
+## Encapsulation
 
 R6 has two special properties:
 
 - It uses the encapsulated OOP paradigm, which means that methods belong to objects, not generics, and you call them like `object$method()`.
 - R6 objects are mutable, which means that they are modified in place, and hence have reference semantics.
- 
 
-R6Class is not defined in base R, it is located in the package `R6`. There only one function
+
+`R6Class` is not defined in base R, it is located in the package `R6`. There only one function
 that we would ever use `R6::R6Class`.
 
 A R6 class provides a general structure of an R6 object.
@@ -261,13 +319,14 @@ Accumulator <- R6::R6Class(
     sum = 0,
     add = function(x = 1) {
       self$sum <- self$sum + x
-      invisible(self)
+      invisible(self)  # chain method calls
     }
   )
 )
 ```
 
 You construct a new object from the class by calling the `new()` method. 
+
 
 ```{r}
 x <- Accumulator$new()
@@ -276,6 +335,9 @@ x <- Accumulator$new()
 You can then call methods and access fields with `$`:
 ```{r}
 x$add(4)
+```
+
+```{r}
 x$sum
 ```
 
@@ -298,19 +360,18 @@ x$
 
 ### Initialization
 
-
 `$initialize()` overrides the default behaviour of `$new()`. 
 For example, the following code defines an Person class with fields `$name` and `$age`.
 
 ```{r}
-Person <- R6::R6Class("Person", 
+Person <- R6::R6Class(
+  "Person", 
   public = list(
     name = NULL,
     age = NA,
     initialize = function(name, age = NA) {
       stopifnot(is.character(name), length(name) == 1)
       stopifnot(is.numeric(age), length(age) == 1)
-      
       self$name <- name
       self$age <- age
     }
@@ -332,7 +393,8 @@ randy <- Person$new("Randy", "thirth-three")
 The `$print` method allows you to override the default printing behaviour.
 
 ```{r}
-Person <- R6::R6Class("Person", 
+Person <- R6::R6Class(
+  "Person", 
   public = list(
     name = NULL,
     age = NA,
@@ -384,17 +446,45 @@ randy$age
 ```
 PS: `$clone()` does not recursively clone nested R6 objects. If you want that, you’ll need to use `$clone(deep = TRUE)`
 
-### Finalizer
-
-Since R6 is mutable in nature, it is useful to have a `$finalizer()` method called after all the references to an object are destroyed.
-
-See https://adv-r.hadley.nz/r6.html#finalizer
-
 ### Mutable default argument
 
+A similar issue could be raised in Python.
+
+```{python}
+class Foo():
+  x = []
+  def add(self, y):
+    self.x.append(y)
+```
+
+```{python}
+a = Foo()
+b = Foo()
+a.x
+b.x
+```
+
+
+```{python}
+a.add(1)
+a.add(2)
+b.x
+```
+
+We need to initlize the default variables in `__init__`
+```{python}
+class Foo():
+  x = None
+  def __init__(self):
+    self.x = []
+  def add(self, y):
+    self.x.append(y)
+```
+
+To demonstrate the same issue
 ```{r}
-Company <- R6::R6Class(
-  "Person", 
+Store <- R6::R6Class(
+  "Store", 
   public = list(
     owner = Person$new("Randy"),
     transfer = function(name) {
@@ -406,8 +496,8 @@ Company <- R6::R6Class(
 ```
 
 ```{r}
-bookstore <- Company$new()
-cafe <- Company$new()
+bookstore <- Store$new()
+cafe <- Store$new()
 ```
 
 ```{r}
@@ -420,16 +510,42 @@ Since both `bookstore` and `cafe` have the same object `Person$new("Randy")`, th
 cafe$owner
 ```
 
-A similar issue could be raised in Python.
-
-
-```{python}
-class Foo():
-  x = []
-  def add(self, y):
-    self.x.append(y)
+```{r}
+Store <- R6::R6Class(
+  "Store", 
+  public = list(
+    owner = NULL,
+    initialize = function() {
+      self$owner <- Person$new("Randy")
+    },
+    transfer = function(name) {
+      self$owner$name <- name
+      invisible(self)
+    }
+  )
+)
 ```
 
+
+```{r}
+bookstore <- Store$new()
+cafe <- Store$new()
+```
+
+```{r}
+bookstore$transfer("John")
+```
+
+```{r}
+cafe$owner
+```
+
+
+### Finalizer
+
+Since R6 is mutable in nature, it is useful to have a `$finalizer()` method called after all the references to an object are destroyed.
+
+See https://adv-r.hadley.nz/r6.html#finalizer
 
 
 # Reference
