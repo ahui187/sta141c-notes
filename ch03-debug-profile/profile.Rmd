@@ -1,0 +1,170 @@
+---
+title: "Profiling R Code"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r, message = FALSE}
+# we will need these packages
+library(profvis)
+library(bench)
+library(tidyverse)
+```
+
+
+# Optimization
+
+[Donald Knuth](https://en.wikipedia.org/wiki/Donald_Knuth) has famously said
+
+> The real problem is that programmers have spent far too much time worrying about efficiency in the wrong places and at the wrong times; premature optimization is the root of all evil (or at least most of it) in programming.
+
+
+Before you can make your code faster, you first need to figure out what's making it slow.
+
+We consider this example of simple linear regression,
+
+```{r}
+x <- runif(1e7)
+y <- runif(1e7)
+coef(lm(y ~ x)) #  it is quite slow
+```
+
+```{r}
+system.time(coef(lm(y ~ x)))
+```
+
+
+`Rprof()` keeps track of the function call stack at regularly sampled intervals and tabulates how much time is spent inside each function
+
+```{r}
+Rprof()
+coef(lm(y ~ x))
+Rprof(NULL)
+result <- summaryRprof()
+result$by.self
+result$by.total
+```
+
+`help(lm.fit)` gives us 
+> These are the basic computing engines called by lm used to fit linear models. These should usually not be used directly unless by experienced users. 
+
+
+```{r}
+system.time(lm.fit(cbind(1, x), y)$coefficients)
+```
+
+
+## Visualising profiles
+
+
+There are two ways to use profvis:
+
+- From the Profile menu in RStudio.
+
+- Use the `profvis` function
+
+```{r}
+profvis(coef(lm(y ~ x)))
+```
+
+
+## Memory profiling
+
+When an object in R is not referenced by any other objects, it will get GC'ed (garbage collected). If `GC` is taking a lot of time, it’s usually an indication that you’re creating many short-lived objects.
+
+```{r}
+profvis({
+  x <- integer()
+  for (i in 1:2e4) {
+    x <- c(x, i)
+  }
+})
+```
+Each time when `x <- c(x, i)` is execulated, the previous `x` is de-referenced and marked as pending to be GC'ed. R will GC those `x`'s at some point down the line.
+
+
+
+## Microbenchmark
+
+A microbenchmark is a measurement of the performance of a very small piece of code.
+
+The following code compares the speed of two approaches to computing a square root.
+
+```{r}
+x <- runif(100)
+bench::mark(
+  sqrt(x),
+  x^0.5
+)
+```
+```{r}
+bench::mark(
+  sqrt(x),
+  x^0.5,
+  relative = TRUE
+)
+```
+
+`sqrt(x)` is is about 5x faster than `x ^ 0.5`
+
+The simple linear regression example
+
+```{r}
+slr <- function(x, y) {
+  mux <- mean(x)
+  muy <- mean(y)
+  sxy <- sum((x - mux) * (y - muy))
+  sxx <- sum((x - mux)^2)
+  slope <- sxy / sxx
+  intercept <- muy - slope * mux
+  c(intercept, slope)
+}
+```
+
+```{Rcpp}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+NumericVector slr_cpp(NumericVector x, NumericVector y) {
+  double mux = mean(x);
+  double muy = mean(y);
+  double sxy = sum((x - mux)*(y - muy));
+  double sxx = sum(pow(x - mux, 2));
+  double slope = sxy / sxx;
+  double intercept = muy - slope * mux;
+  return NumericVector::create(intercept, slope);
+}
+```
+Remark: No worries, we will cover Rcpp later
+
+
+```{r, cached = TRUE}
+x <- runif(1e7)
+y <- runif(1e7)
+
+(result <- bench::mark(
+  slr(x, y),
+  slr_cpp(x, y),
+  lm = as.double(coef(lm(y ~ x))),
+  lm.fit = as.double(lm.fit(cbind(1, x), y)$coefficients)
+))
+autoplot(result)
+```
+
+
+There are three levels of collections. 
+- level 0 collects only the youngest generation
+- level 1 collects the two youngest generations
+- level 2 collects all generations.
+
+After 20 level-0 collections the next collection is at level 1, and after 5 level-1 collections at level 2.
+
+
+# Reference
+
+- Advanced R https://adv-r.hadley.nz/perf-measure.html
+- R Programming for Data Science https://bookdown.org/rdpeng/rprogdatascience/profiling-r-code.html
+
+

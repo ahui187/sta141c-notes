@@ -446,6 +446,7 @@ randy$age
 ```
 PS: `$clone()` does not recursively clone nested R6 objects. If you want that, you’ll need to use `$clone(deep = TRUE)`
 
+
 #### Mutable default argument
 
 A similar issue could be raised in Python.
@@ -548,6 +549,74 @@ Since R6 is mutable in nature, it is useful to have a `$finalizer()` method call
 See https://adv-r.hadley.nz/r6.html#finalizer
 
 
+### Inheritance
+
+Inheritance allows object to share behavior. We will use R6 objects to demonstrate. (It is also possible to inheritate S3 objects, but it is not used very often in practice.)
+
+```{r}
+Rectangle <- R6::R6Class(
+  "Rectangle",
+  public = list(
+    width = NULL,
+    height = NULL,
+    initialize = function(width, height) {
+      self$width <- width
+      self$height <- height
+    },
+    area = function() {
+      self$width * self$height
+    },
+    perimeter = function() {
+      2 * (self$width + self$height)
+    },
+    multiply = function(x, y) {
+      self$width <- self$width * x
+      self$height <- self$height * y
+      invisible(self)
+    },
+    print = function() {
+      cat(class(self)[1], "with area", self$area())
+      cat("\n")
+    }
+  )
+)
+```
+
+```{r}
+r <- Rectangle$new(2, 3)
+r
+r$perimeter()
+```
+
+Square is a special type of Rectangle. The following class extends the Rectangle to Square.
+
+```{r}
+Square <- R6::R6Class(
+  "Square",
+  inherit = Rectangle,
+  public = list(
+    initialize = function(side) {
+      super$initialize(side, side)
+    },
+    multiply = function(x) {
+      super$multiply(x, x)
+    }
+  )
+)
+```
+
+`initialize` and `multiply` override the parent (superclass) implementations, but we can still delegate to the parent implementations by using `super$`.
+
+```{r}
+s <- Square$new(3)
+s
+s$perimeter()
+s$multiply(2)$multiply(1/2)$area()
+```
+
+
 # Reference
 
 Advanced R: https://adv-r.hadley.nz/oo.html
+
+

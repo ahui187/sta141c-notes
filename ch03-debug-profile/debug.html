@@ -11,7 +11,7 @@
 
 
 
-<title>Object oriented programming in R</title>
+<title>Debugging in R</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -374,527 +374,119 @@ summary {
 
 
 
-<h1 class="title toc-ignore">Object oriented programming in R</h1>
+<h1 class="title toc-ignore">Debugging in R</h1>
 
 </div>
 
 <div id="TOC">
 <ul>
-<li><a href="#objects-in-r">Objects in R</a>
+<li><a href="#debugging">Debugging</a>
 <ul>
-<li><a href="#base-types">Base types</a></li>
-<li><a href="#s3">S3</a></li>
-<li><a href="#s4">S4</a></li>
-<li><a href="#r6">R6</a></li>
+<li><a href="#different-types-of-erros">Different types of erros</a></li>
+<li><a href="#locating-errors">Locating errors</a></li>
+<li><a href="#lazy-evaluation">Lazy evaluation</a></li>
+<li><a href="#using-recover">Using <code>recover()</code></a></li>
+<li><a href="#interactive-debugger-in-rstudio">Interactive debugger in RStudio</a></li>
+<li><a href="#interactive-debugger-elsewhere">Interactive debugger elsewhere</a>
+<ul>
+<li><a href="#browser"><code>browser()</code></a></li>
+<li><a href="#debug-and-debugonce"><code>debug()</code> and <code>debugonce()</code></a></li>
 </ul></li>
-<li><a href="#oop">OOP</a>
-<ul>
-<li><a href="#polymorphism">Polymorphism</a></li>
-<li><a href="#encapsulation">Encapsulation</a></li>
-<li><a href="#inheritance">Inheritance</a></li>
 </ul></li>
 <li><a href="#reference">Reference</a></li>
 </ul>
 </div>
 
-<div id="objects-in-r" class="section level2">
-<h2>Objects in R</h2>
-<p>We first need to talk about type of objects. Everthing in R are objects, but there are different types of objects.</p>
+<div id="debugging" class="section level1">
+<h1>Debugging</h1>
+<p>Jenny Bryan gave a very good talk in <a href="https://resources.rstudio.com/rstudio-conf-2020/object-of-type-closure-is-not-subsettable-jenny-bryan">RStudio conf 2020</a>.</p>
 <ul>
-<li>Base types, such as integers, characters etc</li>
-<li>S3, e.g., <code>data.frame</code>, <code>tibble</code></li>
-<li>S4, e.g., the matrices from <code>Matrix</code> package (getting less popular nowadays)</li>
-<li>RC, e.g., not popular</li>
-<li>R6, e.g., the state of the art OOP system</li>
+<li>reset<br> Jenny recommands <a href="https://speakerdeck.com/jennybc/object-of-type-closure-is-not-subsettable?slide=12">not saving .Rdata</a> on exit.</li>
+<li>reprex<br> <code>reprex</code> is a package which makes reproducible examples.</li>
+<li>debug<br> the main focus of this chapter</li>
+<li>deter<br> Fix it once? Keep it fixed.</li>
 </ul>
-<p>We will use the <code>sloop</code> library to help us understand some internal R structures.</p>
-<div id="base-types" class="section level3">
-<h3>Base types</h3>
-<p><code>otype</code> shows the type of an object.</p>
-<pre class="r"><code>otype(1:10)</code></pre>
-<pre><code>## [1] &quot;base&quot;</code></pre>
-<pre class="r"><code>otype(&quot;a&quot;)</code></pre>
-<pre><code>## [1] &quot;base&quot;</code></pre>
-<pre class="r"><code>x &lt;- matrix(1:2, nrow = 2, ncol = 2)
-otype(x)</code></pre>
-<pre><code>## [1] &quot;base&quot;</code></pre>
-</div>
-<div id="s3" class="section level3">
-<h3>S3</h3>
-<pre class="r"><code>otype(mtcars)</code></pre>
-<pre><code>## [1] &quot;S3&quot;</code></pre>
-<pre class="r"><code>class(mtcars)</code></pre>
-<pre><code>## [1] &quot;data.frame&quot;</code></pre>
-<pre class="r"><code>fit &lt;- lm(mpg ~ wt, data = mtcars)
-otype(fit)</code></pre>
-<pre><code>## [1] &quot;S3&quot;</code></pre>
-<pre class="r"><code>class(fit)</code></pre>
-<pre><code>## [1] &quot;lm&quot;</code></pre>
-</div>
-<div id="s4" class="section level3">
-<h3>S4</h3>
-<pre class="r"><code>M &lt;- Matrix::Matrix(rnorm(12), 3, 4)
-otype(M)</code></pre>
-<pre><code>## [1] &quot;S4&quot;</code></pre>
-<pre class="r"><code>M@Dim # `@` is the signature of S4 objects</code></pre>
-<pre><code>## [1] 3 4</code></pre>
-<pre class="r"><code>class(M)</code></pre>
-<pre><code>## [1] &quot;dgeMatrix&quot;
-## attr(,&quot;package&quot;)
-## [1] &quot;Matrix&quot;</code></pre>
-</div>
-<div id="r6" class="section level3">
-<h3>R6</h3>
-<pre class="r"><code># it is a package that we will learn later
-library(callr)</code></pre>
-<pre class="r"><code>bg_task &lt;- r_bg(function() Sys.sleep(60))
-otype(bg_task)</code></pre>
-<pre><code>## [1] &quot;R6&quot;</code></pre>
-<pre class="r"><code>bg_task$is_alive() # `$` to call methods</code></pre>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-</div>
-<div id="oop" class="section level2">
-<h2>OOP</h2>
-<p>Orject oriented programming is a difficult topic. We will breifly discuss two concepts in OOP, i.e., polymorphism (S3/S4) and encapsulation (R6).</p>
-<div id="polymorphism" class="section level3">
-<h3>Polymorphism</h3>
-<p>So what is it? Literally, it means many forms</p>
-<pre class="r"><code>x &lt;- rnorm(10)
-y &lt;- rnorm(10)
-fit &lt;- lm(y ~ x)</code></pre>
-<pre class="r"><code>summary(x) # summary.default(x)</code></pre>
-<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-## -1.8334 -0.8472 -0.4708 -0.3774  0.1542  1.2534</code></pre>
-<pre class="r"><code>summary(fit) # summary.lm(fit)</code></pre>
-<pre><code>## 
-## Call:
-## lm(formula = y ~ x)
-## 
-## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -2.17352 -0.82180  0.03991  1.14074  1.82599 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)
-## (Intercept)  -0.3662     0.4823  -0.759    0.469
-## x            -0.1846     0.5254  -0.351    0.734
-## 
-## Residual standard error: 1.39 on 8 degrees of freedom
-## Multiple R-squared:  0.0152, Adjusted R-squared:  -0.1079 
-## F-statistic: 0.1235 on 1 and 8 DF,  p-value: 0.7343</code></pre>
-<p>In above, the function <code>summary</code> takes different forms and dispatches different results based on the class of the input.</p>
-<pre class="r"><code>otype(x)</code></pre>
-<pre><code>## [1] &quot;base&quot;</code></pre>
-<pre class="r"><code>otype(fit)</code></pre>
-<pre><code>## [1] &quot;S3&quot;</code></pre>
-<pre class="r"><code>class(fit)</code></pre>
-<pre><code>## [1] &quot;lm&quot;</code></pre>
-<p><code>summary</code> is a generic function which dispatches other functions based on the class of the object.</p>
-<pre class="r"><code># list all the method dispatches of summary
-s3_methods_generic(&quot;summary&quot;)</code></pre>
-<pre><code>## # A tibble: 36 x 4
-##    generic class                 visible source             
-##    &lt;chr&gt;   &lt;chr&gt;                 &lt;lgl&gt;   &lt;chr&gt;              
-##  1 summary aov                   TRUE    stats              
-##  2 summary aovlist               FALSE   registered S3method
-##  3 summary aspell                FALSE   registered S3method
-##  4 summary check_packages_in_dir FALSE   registered S3method
-##  5 summary connection            TRUE    base               
-##  6 summary data.frame            TRUE    base               
-##  7 summary Date                  TRUE    base               
-##  8 summary default               TRUE    base               
-##  9 summary ecdf                  FALSE   registered S3method
-## 10 summary factor                TRUE    base               
-## # … with 26 more rows</code></pre>
-<p>Another example of dispatching</p>
-<pre class="r"><code>ta &lt;- table(mtcars$cyl, mtcars$am)
-otype(ta)</code></pre>
-<pre><code>## [1] &quot;S3&quot;</code></pre>
-<pre class="r"><code>summary(ta)  # summary.table(ta)</code></pre>
-<pre><code>## Number of cases in table: 32 
-## Number of factors: 2 
-## Test for independence of all factors:
-##  Chisq = 8.741, df = 2, p-value = 0.01265
-##  Chi-squared approximation may be incorrect</code></pre>
-<div id="extend-existing-generic" class="section level4">
-<h4>Extend existing generic</h4>
-<p>Check if a function is generic</p>
-<pre class="r"><code># `length` is a primitive generic function
-ftype(length)</code></pre>
-<pre><code>## [1] &quot;primitive&quot; &quot;generic&quot;</code></pre>
-<pre class="r"><code># `mean` is a S3 generic function
-ftype(mean)</code></pre>
-<pre><code>## [1] &quot;S3&quot;      &quot;generic&quot;</code></pre>
-<pre class="r"><code># lm is not generic
-ftype(lm)</code></pre>
-<pre><code>## [1] &quot;function&quot;</code></pre>
-<pre class="r"><code>fit &lt;- lm(mpg ~ wt , data = mtcars)</code></pre>
-<p>As <code>length</code> is a primitive generic function, it dispatches different versions of <code>length</code> for different inputs.</p>
-<pre class="r"><code>s3_methods_generic(&quot;length&quot;)</code></pre>
-<pre><code>## # A tibble: 9 x 4
-##   generic class                   visible source             
-##   &lt;chr&gt;   &lt;chr&gt;                   &lt;lgl&gt;   &lt;chr&gt;              
-## 1 length  arrow                   FALSE   registered S3method
-## 2 length  POSIXlt                 TRUE    base               
-## 3 length  rlang_ctxt_pronoun      FALSE   registered S3method
-## 4 length  rlang_data_pronoun      FALSE   registered S3method
-## 5 length  rlang_fake_data_pronoun FALSE   registered S3method
-## 6 length  unit                    FALSE   registered S3method
-## 7 length  unit.arithmetic         FALSE   registered S3method
-## 8 length  unit.list               FALSE   registered S3method
-## 9 length  vctrs_rcrd              FALSE   registered S3method</code></pre>
-<p><code>length</code> returns the length of a vector, not the string length</p>
-<pre class="r"><code>s &lt;- &quot;it is long string&quot;
-otype(s)</code></pre>
-<pre><code>## [1] &quot;base&quot;</code></pre>
-<pre class="r"><code>length(s)</code></pre>
-<pre><code>## [1] 1</code></pre>
-<p>The method should extend the signatures of the generic.</p>
-<pre class="r"><code># To define a `length` method for `string`.
-length.string &lt;- function(x) {
-  nchar(x)
-}</code></pre>
-<pre class="r"><code>s &lt;- structure(&quot;it is long string&quot;, class = &quot;string&quot;)
-# it is the same as
-# s &lt;- &quot;it is long string&quot;
-# class(s) &lt;- &quot;string&quot;
-otype(s)</code></pre>
-<pre><code>## [1] &quot;S3&quot;</code></pre>
-<pre class="r"><code>class(s)</code></pre>
-<pre><code>## [1] &quot;string&quot;</code></pre>
-<pre class="r"><code>length(s) # length.string(s)</code></pre>
-<pre><code>## [1] 17</code></pre>
-<p>Another example, “print” function for string</p>
-<pre class="r"><code>ftype(print)</code></pre>
-<pre><code>## [1] &quot;S3&quot;      &quot;generic&quot;</code></pre>
-<pre class="r"><code>print.string &lt;- function(x, ..., max_length = 40) {
-  cat(stringr::str_trunc(x, max_length))
-  cat(&quot;\n&quot;)
-}</code></pre>
-<pre class="r"><code>s &lt;- structure(&quot;it is long string jflkdj aflkjdklafj kldasjf fdasjklfjdlkas fdajflkdas&quot;, class = &quot;string&quot;)
-s</code></pre>
-<pre><code>## it is long string jflkdj aflkjdklafj ...</code></pre>
-<pre class="r"><code>print(s, max_length = 60)</code></pre>
-<pre><code>## it is long string jflkdj aflkjdklafj kldasjf fdasjklfjdlk...</code></pre>
-<div id="difference-between-primitive-and-s3-generic-function." class="section level5">
-<h5>Difference between primitive and S3 generic function.</h5>
+<div id="different-types-of-erros" class="section level2">
+<h2>Different types of erros</h2>
 <ul>
-<li>primitive generic cannot be extended to base types.</li>
+<li>syntax / parsing error</li>
+<li>runtime error</li>
 </ul>
-<pre class="r"><code>otype(LETTERS)</code></pre>
-<pre><code>## [1] &quot;base&quot;</code></pre>
-<pre class="r"><code>ftype(sum)</code></pre>
-<pre><code>## [1] &quot;primitive&quot; &quot;generic&quot;</code></pre>
-<pre class="r"><code>sum(LETTERS)</code></pre>
-<pre><code>## Error in sum(LETTERS): invalid &#39;type&#39; (character) of argument</code></pre>
-<ul>
-<li>On the other hand, S3 could be extended to base types.</li>
-</ul>
-<pre class="r"><code>ftype(mean)</code></pre>
-<pre><code>## [1] &quot;S3&quot;      &quot;generic&quot;</code></pre>
-<pre class="r"><code>mean.character &lt;- function(x, na.rm = FALSE, ...) {
-  # please ignore the implmentation detail here
-  # it is just a way to define mean for letters
-  intToUtf8(round(mean(sapply(x, utf8ToInt), na.rm = na.rm)))
+</div>
+<div id="locating-errors" class="section level2">
+<h2>Locating errors</h2>
+<pre class="r"><code>f &lt;- function(a) g(a)
+g &lt;- function(b) h(b)
+h &lt;- function(c) i(c)
+i &lt;- function(d) {
+  if (!is.numeric(d)) {
+    stop(&quot;`d` must be numeric&quot;, call. = FALSE)
+  }
+  d + 10
 }
-mean(c(&quot;A&quot;, &quot;G&quot;, &quot;H&quot;))</code></pre>
-<pre><code>## [1] &quot;E&quot;</code></pre>
-<pre class="r"><code># without the extension
-rm(mean.character)
-mean(c(&quot;A&quot;, &quot;G&quot;, &quot;H&quot;))</code></pre>
-<pre><code>## Warning in mean.default(c(&quot;A&quot;, &quot;G&quot;, &quot;H&quot;)): argument is not numeric or logical:
-## returning NA</code></pre>
-<pre><code>## [1] NA</code></pre>
+f(&quot;a&quot;)</code></pre>
+<pre><code>## Error: `d` must be numeric</code></pre>
+<p>See also <code>debug.R</code> demonstration.</p>
 </div>
+<div id="lazy-evaluation" class="section level2">
+<h2>Lazy evaluation</h2>
+<pre class="r"><code>j &lt;- function() k()
+k &lt;- function() stop(&quot;Oops!&quot;, call. = FALSE)
+f(j())</code></pre>
+<pre><code>## Error: Oops!</code></pre>
+<pre class="r"><code>rlang::with_abort(f(j()))</code></pre>
+<pre><code>## Error: Oops!</code></pre>
+<pre class="r"><code>rlang::last_trace()</code></pre>
+<pre><code>## Error: Can&#39;t show last error because no error was recorded yet</code></pre>
 </div>
-<div id="create-your-own-generic" class="section level4">
-<h4>Create your own generic</h4>
-<pre class="r"><code>center &lt;- function(x) {
-  UseMethod(&quot;center&quot;)
-}</code></pre>
-<pre class="r"><code>ftype(center)</code></pre>
-<pre><code>## [1] &quot;S3&quot;      &quot;generic&quot;</code></pre>
-<p>Then we define two versions of center based on the class.</p>
-<pre class="r"><code>center.skewed &lt;- function(x) {
-  mean(x, trim = 0.2)
+<div id="using-recover" class="section level2">
+<h2>Using <code>recover()</code></h2>
+<p>By setting ,</p>
+<pre class="r"><code>options(error = recover)</code></pre>
+<p>a interactive prompt will be displayed that you get an error.</p>
+</div>
+<div id="interactive-debugger-in-rstudio" class="section level2">
+<h2>Interactive debugger in RStudio</h2>
+<p>When we encounter an error, we could hit <code>Rerun with Debug</code> in RStudio to start interactive debugging.</p>
+<pre class="r"><code>f(&quot;a&quot;)</code></pre>
+<pre><code>## Error: `d` must be numeric</code></pre>
+<p>Sometimes, we know something is definitely wrong but the code runs fine.</p>
+<p>See <code>debug2.R</code> for demonstration.</p>
+</div>
+<div id="interactive-debugger-elsewhere" class="section level2">
+<h2>Interactive debugger elsewhere</h2>
+<div id="browser" class="section level3">
+<h3><code>browser()</code></h3>
+<p>When <code>browser()</code> is run, a interactive prompt will be shown.</p>
+<pre class="r"><code>g &lt;- function(b) {
+  browser()
+  h(b)
 }
-
-center.symmetric &lt;- function(x) {
-  mean(x)
-}</code></pre>
-<p>Fallback, if nothing works</p>
-<pre class="r"><code>center.default &lt;- function(x) {
-  median(x)
-}</code></pre>
-<pre class="r"><code>a &lt;- rnorm(10)
-class(a) &lt;- &quot;skewed&quot;
-center(a) # 80% trim mean:  center.skewed(a)</code></pre>
-<pre><code>## [1] 0.01614745</code></pre>
-<pre class="r"><code>mean(a, trim = 0.2)</code></pre>
-<pre><code>## [1] 0.01614745</code></pre>
-<pre class="r"><code>class(a) &lt;- &quot;symmetric&quot;
-center(a) # ordinary mean:  center.symmetric(a)</code></pre>
-<pre><code>## [1] -0.04478893</code></pre>
-<pre class="r"><code>mean(a)</code></pre>
-<pre><code>## [1] -0.04478893</code></pre>
-<pre class="r"><code>class(a) &lt;- &quot;anything_else&quot;
-center(a) # median</code></pre>
-<pre><code>## [1] -0.03706334</code></pre>
-<pre class="r"><code>median(a)</code></pre>
-<pre><code>## [1] -0.03706334</code></pre>
-<pre class="r"><code>b &lt;- rnorm(10)
-center(b)  # center.default(b); median(b)</code></pre>
-<pre><code>## [1] 0.08000553</code></pre>
+g(10)</code></pre>
+<pre><code>## Called from: g(10)
+## debug at &lt;text&gt;#3: h(b)</code></pre>
+<pre><code>## [1] 20</code></pre>
+<p><code>browser()</code> is a regular function call which means that you can run it conditionally</p>
+<pre class="r"><code>g &lt;- function(b) {
+  if (b &lt; 0) {
+    browser()
+  }
+  h(b)
+}
+g(10)</code></pre>
+<p>See <code>debug2.R</code> for demonstration.</p>
 </div>
+<div id="debug-and-debugonce" class="section level3">
+<h3><code>debug()</code> and <code>debugonce()</code></h3>
+<p><code>debug</code> takes a single argument, the name of a function. When you pass the name of a function to debug, that function is flagged for debugging.</p>
+<p>See <code>debug3.R</code> for demonstration.</p>
+<p>See <code>debug4.R</code> for demonstration.</p>
 </div>
-<div id="encapsulation" class="section level3">
-<h3>Encapsulation</h3>
-<p>R6 has two special properties:</p>
-<ul>
-<li>It uses the encapsulated OOP paradigm, which means that methods belong to objects, not generics, and you call them like <code>object$method()</code>.</li>
-<li>R6 objects are mutable, which means that they are modified in place, and hence have reference semantics.</li>
-</ul>
-<p><code>R6Class</code> is not defined in base R, it is located in the package <code>R6</code>. There only one function that we would ever use <code>R6::R6Class</code>.</p>
-<p>A R6 class provides a general structure of an R6 object. The following example shows the two most important arguments to <code>R6Class()</code></p>
-<ul>
-<li>The first argument is the classname. It’s not strictly needed,</li>
-<li>The second argument, <code>public</code>, supplies a list of methods (functions) and fields (anything else) that make up the public interface of the object. Methods can access the methods and fields of the current object via <code>self$</code>.</li>
-</ul>
-<pre class="r"><code>Accumulator &lt;- R6::R6Class(
-  &quot;Accumulator&quot;,
-  public = list(
-    sum = 0,
-    add = function(x = 1) {
-      self$sum &lt;- self$sum + x
-      invisible(self)  # chain method calls
-    }
-  )
-)</code></pre>
-<p>You construct a new object from the class by calling the <code>new()</code> method.</p>
-<pre class="r"><code>x &lt;- Accumulator$new()</code></pre>
-<p>You can then call methods and access fields with <code>$</code>:</p>
-<pre class="r"><code>x$add(4)</code></pre>
-<pre class="r"><code>x$sum</code></pre>
-<pre><code>## [1] 4</code></pre>
-<div id="method-chaining" class="section level4">
-<h4>Method chaining</h4>
-<p>Side-effect R6 methods should always return self invisibly. This returns the “current” object and makes it possible to chain together multiple method calls:</p>
-<pre class="r"><code>x$add(10)$add(10)$sum</code></pre>
-<pre><code>## [1] 24</code></pre>
-<p>For readability</p>
-<pre class="r"><code>x$
-  add(10)$
-  add(10)$
-  sum</code></pre>
-<pre><code>## [1] 44</code></pre>
-</div>
-<div id="initialization" class="section level4">
-<h4>Initialization</h4>
-<p><code>$initialize()</code> overrides the default behaviour of <code>$new()</code>. For example, the following code defines an Person class with fields <code>$name</code> and <code>$age</code>.</p>
-<pre class="r"><code>Person &lt;- R6::R6Class(
-  &quot;Person&quot;, 
-  public = list(
-    name = NULL,
-    age = NA,
-    initialize = function(name, age = NA) {
-      stopifnot(is.character(name), length(name) == 1)
-      stopifnot(is.numeric(age), length(age) == 1)
-      self$name &lt;- name
-      self$age &lt;- age
-    }
-  )
-)</code></pre>
-<pre class="r"><code>randy &lt;- Person$new(&quot;Randy&quot;, 33)
-randy</code></pre>
-<pre><code>## &lt;Person&gt;
-##   Public:
-##     age: 33
-##     clone: function (deep = FALSE) 
-##     initialize: function (name, age = NA) 
-##     name: Randy</code></pre>
-<pre class="r"><code>randy &lt;- Person$new(&quot;Randy&quot;, &quot;thirth-three&quot;)</code></pre>
-<pre><code>## Error in .subset2(public_bind_env, &quot;initialize&quot;)(...): is.numeric(age) is not TRUE</code></pre>
-</div>
-<div id="printing" class="section level4">
-<h4>Printing</h4>
-<p>The <code>$print</code> method allows you to override the default printing behaviour.</p>
-<pre class="r"><code>Person &lt;- R6::R6Class(
-  &quot;Person&quot;, 
-  public = list(
-    name = NULL,
-    age = NA,
-    initialize = function(name, age = NA) {
-      self$name &lt;- name
-      self$age &lt;- age
-    },
-    print = function(...) {
-      cat(&quot;Person: \n&quot;)
-      cat(&quot;  Name: &quot;, self$name, &quot;\n&quot;, sep = &quot;&quot;)
-      cat(&quot;  Age:  &quot;, self$age, &quot;\n&quot;, sep = &quot;&quot;)
-      invisible(self)
-    }
-  )
-)</code></pre>
-<pre class="r"><code>randy &lt;- Person$new(&quot;Randy&quot;, 33)
-randy</code></pre>
-<pre><code>## Person: 
-##   Name: Randy
-##   Age:  33</code></pre>
-</div>
-<div id="mutability" class="section level4">
-<h4>Mutability</h4>
-<p>Unlikes most R objects, R6 objects are mutable.</p>
-<pre class="r"><code># list is immutable
-randy &lt;- list(name = &quot;Randy&quot;, age = 33)
-randy_second &lt;- randy
-randy_second$age &lt;- 18
-randy$age</code></pre>
-<pre><code>## [1] 33</code></pre>
-<pre class="r"><code># R6 object is mutable
-randy &lt;- Person$new(&quot;Randy&quot;, 33)
-randy_second &lt;- randy
-randy_second$age &lt;- 18
-randy$age</code></pre>
-<pre><code>## [1] 18</code></pre>
-<p>To make a clone, we need to use the <code>$clone</code> method</p>
-<pre class="r"><code>randy &lt;- Person$new(&quot;Randy&quot;, 33)
-randy_second &lt;- randy$clone()
-randy_second$age &lt;- 18
-randy$age</code></pre>
-<pre><code>## [1] 33</code></pre>
-<p>PS: <code>$clone()</code> does not recursively clone nested R6 objects. If you want that, you’ll need to use <code>$clone(deep = TRUE)</code></p>
-</div>
-<div id="mutable-default-argument" class="section level4">
-<h4>Mutable default argument</h4>
-<p>A similar issue could be raised in Python.</p>
-<pre class="python"><code>class Foo():
-  x = []
-  def add(self, y):
-    self.x.append(y)</code></pre>
-<pre class="python"><code>a = Foo()
-b = Foo()
-a.x</code></pre>
-<pre><code>## []</code></pre>
-<pre class="python"><code>b.x</code></pre>
-<pre><code>## []</code></pre>
-<pre class="python"><code>a.add(1)
-a.add(2)
-b.x</code></pre>
-<pre><code>## [1, 2]</code></pre>
-<p>We need to initlize the default variables in <code>__init__</code></p>
-<pre class="python"><code>class Foo():
-  x = None
-  def __init__(self):
-    self.x = []
-  def add(self, y):
-    self.x.append(y)</code></pre>
-<p>To demonstrate the same issue</p>
-<pre class="r"><code>Store &lt;- R6::R6Class(
-  &quot;Store&quot;, 
-  public = list(
-    owner = Person$new(&quot;Randy&quot;),
-    transfer = function(name) {
-      self$owner$name &lt;- name
-      invisible(self)
-    }
-  )
-)</code></pre>
-<pre class="r"><code>bookstore &lt;- Store$new()
-cafe &lt;- Store$new()</code></pre>
-<pre class="r"><code>bookstore$transfer(&quot;John&quot;)</code></pre>
-<p>Since both <code>bookstore</code> and <code>cafe</code> have the same object <code>Person$new(&quot;Randy&quot;)</code>, the owner name of <code>cafe</code> is also changed.</p>
-<pre class="r"><code>cafe$owner</code></pre>
-<pre><code>## Person: 
-##   Name: John
-##   Age:  NA</code></pre>
-<pre class="r"><code>Store &lt;- R6::R6Class(
-  &quot;Store&quot;, 
-  public = list(
-    owner = NULL,
-    initialize = function() {
-      self$owner &lt;- Person$new(&quot;Randy&quot;)
-    },
-    transfer = function(name) {
-      self$owner$name &lt;- name
-      invisible(self)
-    }
-  )
-)</code></pre>
-<pre class="r"><code>bookstore &lt;- Store$new()
-cafe &lt;- Store$new()</code></pre>
-<pre class="r"><code>bookstore$transfer(&quot;John&quot;)</code></pre>
-<pre class="r"><code>cafe$owner</code></pre>
-<pre><code>## Person: 
-##   Name: Randy
-##   Age:  NA</code></pre>
-</div>
-<div id="finalizer" class="section level4">
-<h4>Finalizer</h4>
-<p>Since R6 is mutable in nature, it is useful to have a <code>$finalizer()</code> method called after all the references to an object are destroyed.</p>
-<p>See <a href="https://adv-r.hadley.nz/r6.html#finalizer" class="uri">https://adv-r.hadley.nz/r6.html#finalizer</a></p>
-</div>
-</div>
-<div id="inheritance" class="section level3">
-<h3>Inheritance</h3>
-<p>Inheritance allows object to share behavior. We will use R6 objects to demonstrate. (It is also possible to inheritate S3 objects, but it is not used very often in practice.)</p>
-<pre class="r"><code>Rectangle &lt;- R6::R6Class(
-  &quot;Rectangle&quot;,
-  public = list(
-    width = NULL,
-    height = NULL,
-    initialize = function(width, height) {
-      self$width &lt;- width
-      self$height &lt;- height
-    },
-    area = function() {
-      self$width * self$height
-    },
-    perimeter = function() {
-      2 * (self$width + self$height)
-    },
-    multiply = function(x, y) {
-      self$width &lt;- self$width * x
-      self$height &lt;- self$height * y
-      invisible(self)
-    },
-    print = function() {
-      cat(class(self)[1], &quot;with area&quot;, self$area())
-      cat(&quot;\n&quot;)
-    }
-  )
-)</code></pre>
-<pre class="r"><code>r &lt;- Rectangle$new(2, 3)
-r</code></pre>
-<pre><code>## Rectangle with area 6</code></pre>
-<pre class="r"><code>r$perimeter()</code></pre>
-<pre><code>## [1] 10</code></pre>
-<p>Square is a special type of Rectangle. The following class extends the Rectangle to Square.</p>
-<pre class="r"><code>Square &lt;- R6::R6Class(
-  &quot;Square&quot;,
-  inherit = Rectangle,
-  public = list(
-    initialize = function(side) {
-      super$initialize(side, side)
-    },
-    multiply = function(x) {
-      super$multiply(x, x)
-    }
-  )
-)</code></pre>
-<p><code>initialize</code> and <code>multiply</code> override the parent (superclass) implementations, but we can still delegate to the parent implementations by using <code>super$</code>.</p>
-<pre class="r"><code>s &lt;- Square$new(3)
-s</code></pre>
-<pre><code>## Square with area 9</code></pre>
-<pre class="r"><code>s$perimeter()</code></pre>
-<pre><code>## [1] 12</code></pre>
-<pre class="r"><code>s$multiply(2)$multiply(1/2)$area()</code></pre>
-<pre><code>## [1] 9</code></pre>
 </div>
 </div>
 <div id="reference" class="section level1">
 <h1>Reference</h1>
-<p>Advanced R: <a href="https://adv-r.hadley.nz/oo.html" class="uri">https://adv-r.hadley.nz/oo.html</a></p>
+<p>Advanced R Chapter 22 <a href="https://adv-r.hadley.nz/debugging.html" class="uri">https://adv-r.hadley.nz/debugging.html</a></p>
 </div>
 
 
