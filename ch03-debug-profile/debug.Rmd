@@ -77,8 +77,6 @@ f("a")
 
 Sometimes, we know something is definitely wrong but the code runs fine. 
 
-See `debug2.R` for demonstration.
-
 ## Interactive debugger elsewhere
 
 ### `browser()`
@@ -90,7 +88,7 @@ g <- function(b) {
   browser()
   h(b)
 }
-g(10)
+g("a")
 ```
 
 `browser()` is a regular function call which means that you can run it conditionally

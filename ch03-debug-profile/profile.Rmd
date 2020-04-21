@@ -7,55 +7,67 @@ output:
 
 ```{r, message = FALSE}
 # we will need these packages
+library(tidyverse)
 library(profvis)
 library(bench)
-library(tidyverse)
 ```
 
 
-# Optimization
+# Profiling
 
 [Donald Knuth](https://en.wikipedia.org/wiki/Donald_Knuth) has famously said
 
 > The real problem is that programmers have spent far too much time worrying about efficiency in the wrong places and at the wrong times; premature optimization is the root of all evil (or at least most of it) in programming.
 
-
-Before you can make your code faster, you first need to figure out what's making it slow.
-
 We consider this example of simple linear regression,
 
 ```{r}
-x <- runif(1e7)
-y <- runif(1e7)
-coef(lm(y ~ x)) #  it is quite slow
+generate_and_fit <- function(n) {
+  x <- runif(n)
+  y <- runif(n)
+  fit <- lm(y ~ x)
+  coef(fit)
+}
 ```
 
 ```{r}
-system.time(coef(lm(y ~ x)))
+generate_and_fit(1e7) #  it is quite slow
 ```
 
+### `system.time`
 
-`Rprof()` keeps track of the function call stack at regularly sampled intervals and tabulates how much time is spent inside each function
+The easier tool to do profiling perhaps is the `system.time` function. It reports the amount of time elasped.
+
+```{r}
+system.time(generate_and_fit(1e7))
+```
+
+See https://en.wikipedia.org/wiki/Time_(Unix)#User_time_vs_system_time for the differences between user and system times. (TLDR, they are not very relevant to us.)
+
+### `Rprof`
+
+`Rprof()` keeps track of the function call stack at regularly sampled intervals and tabulates how much time is spent inside each function.
 
 ```{r}
 Rprof()
-coef(lm(y ~ x))
+generate_and_fit(1e7)
 Rprof(NULL)
 result <- summaryRprof()
-result$by.self
-result$by.total
 ```
 
-`help(lm.fit)` gives us 
+```{r}
+result$by.self
+```
+
+```{r}
+result$by.total
+```
+It seems that most of the time was spent in `lm.fit`. `help(lm.fit)` says
+
 > These are the basic computing engines called by lm used to fit linear models. These should usually not be used directly unless by experienced users. 
 
 
-```{r}
-system.time(lm.fit(cbind(1, x), y)$coefficients)
-```
-
-
-## Visualising profiles
+### Visualising profiles
 
 
 There are two ways to use profvis:
@@ -65,24 +77,45 @@ There are two ways to use profvis:
 - Use the `profvis` function
 
 ```{r}
-profvis(coef(lm(y ~ x)))
+profvis(generate_and_fit(1e7))
 ```
 
 
-## Memory profiling
+### Memory profiling
 
 When an object in R is not referenced by any other objects, it will get GC'ed (garbage collected). If `GC` is taking a lot of time, it’s usually an indication that you’re creating many short-lived objects.
 
 ```{r}
+# suppose `f` is a function given to you.
+n <- 1e4
+draw <- sample.int(n, 10)
+f <- function(x) x %in% draw
+```
+
+```{r}
 profvis({
   x <- integer()
-  for (i in 1:2e4) {
-    x <- c(x, i)
+  for (i in 1:n) {
+    x <- c(x, f(i))
   }
 })
 ```
 Each time when `x <- c(x, i)` is execulated, the previous `x` is de-referenced and marked as pending to be GC'ed. R will GC those `x`'s at some point down the line.
 
+
+So a better approach? In the following code, the vector `x` is pre-allocated.
+
+```{r}
+profvis({
+  x <- integer(n)
+  for (i in 1:n) {
+    x[i] <- f(i)
+  }
+}, 
+interval = 0.0005)
+```
+
+`compiler` is an R package doing just in time (JIT) compilation.
 
 
 ## Microbenchmark
@@ -108,7 +141,32 @@ bench::mark(
 
 `sqrt(x)` is is about 5x faster than `x ^ 0.5`
 
-The simple linear regression example
+
+### Revisit the `map` example.
+
+```{r, paged.print = FALSE}
+n <- 1e3
+bench::mark(
+  `for loop` = {
+    x <- integer(n)
+    for (i in 1:n) {
+      x[i] <- f(i)
+    }
+    x
+  },
+  modify = modify(1:n, f),
+  map = map_int(1:n, f)
+)
+```
+
+
+### A simple linear regression example
+
+We want to compare several ways to perform simple linear regression.
+
+- pure R function
+- Rcpp
+- `lm`
 
 ```{r}
 slr <- function(x, y) {
@@ -137,7 +195,7 @@ NumericVector slr_cpp(NumericVector x, NumericVector y) {
   return NumericVector::create(intercept, slope);
 }
 ```
-Remark: No worries, we will cover Rcpp later
+Remark: No worries, we will cover Rcpp later.
 
 
 ```{r, cached = TRUE}
@@ -145,10 +203,10 @@ x <- runif(1e7)
 y <- runif(1e7)
 
 (result <- bench::mark(
-  slr(x, y),
-  slr_cpp(x, y),
-  lm = as.double(coef(lm(y ~ x))),
-  lm.fit = as.double(lm.fit(cbind(1, x), y)$coefficients)
+  slr = slr(x, y),
+  slr_cpp = slr_cpp(x, y),
+  lm = coef(lm(y ~ x)),
+  check = FALSE
 ))
 autoplot(result)
 ```
@@ -160,6 +218,7 @@ There are three levels of collections.
 - level 2 collects all generations.
 
 After 20 level-0 collections the next collection is at level 1, and after 5 level-1 collections at level 2.
+
 
 
 # Reference
