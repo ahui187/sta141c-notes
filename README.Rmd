@@ -22,7 +22,7 @@ output:
 | 04-02, 04-07, 04-09 | [functional programming](ch01-purrr/purrr.Rmd)  | [purrr]
 | 04-09, 04-14        | [object oriented programming](ch02-oop/oop.Rmd) | [oop]
 | 04-16               | [debuging](ch03-debug-profile/debug.Rmd)        | [debug]
-|                     | [profiling](ch03-debug-profile/profile.Rmd)     | [profile]
+| 04-21               | [profiling](ch03-debug-profile/profile.Rmd)     | [profile]
 
 
 [introduction]: README.md
