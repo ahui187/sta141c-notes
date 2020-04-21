@@ -464,8 +464,8 @@ otype(bg_task)</code></pre>
 y &lt;- rnorm(10)
 fit &lt;- lm(y ~ x)</code></pre>
 <pre class="r"><code>summary(x) # summary.default(x)</code></pre>
-<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-## -1.8334 -0.8472 -0.4708 -0.3774  0.1542  1.2534</code></pre>
+<pre><code>##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+## -1.92384 -0.84164  0.03832 -0.24866  0.33234  1.38333</code></pre>
 <pre class="r"><code>summary(fit) # summary.lm(fit)</code></pre>
 <pre><code>## 
 ## Call:
@@ -473,16 +473,16 @@ fit &lt;- lm(y ~ x)</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -2.17352 -0.82180  0.03991  1.14074  1.82599 
+## -1.13080 -0.54221 -0.00452  0.55729  0.96085 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(&gt;|t|)
-## (Intercept)  -0.3662     0.4823  -0.759    0.469
-## x            -0.1846     0.5254  -0.351    0.734
+## (Intercept)   0.1084     0.2650   0.409    0.693
+## x             0.2642     0.2704   0.977    0.357
 ## 
-## Residual standard error: 1.39 on 8 degrees of freedom
-## Multiple R-squared:  0.0152, Adjusted R-squared:  -0.1079 
-## F-statistic: 0.1235 on 1 and 8 DF,  p-value: 0.7343</code></pre>
+## Residual standard error: 0.8106 on 8 degrees of freedom
+## Multiple R-squared:  0.1066, Adjusted R-squared:  -0.005076 
+## F-statistic: 0.9545 on 1 and 8 DF,  p-value: 0.3572</code></pre>
 <p>In above, the function <code>summary</code> takes different forms and dispatches different results based on the class of the input.</p>
 <pre class="r"><code>otype(x)</code></pre>
 <pre><code>## [1] &quot;base&quot;</code></pre>
@@ -630,22 +630,22 @@ center.symmetric &lt;- function(x) {
 <pre class="r"><code>a &lt;- rnorm(10)
 class(a) &lt;- &quot;skewed&quot;
 center(a) # 80% trim mean:  center.skewed(a)</code></pre>
-<pre><code>## [1] 0.01614745</code></pre>
+<pre><code>## [1] 0.4771482</code></pre>
 <pre class="r"><code>mean(a, trim = 0.2)</code></pre>
-<pre><code>## [1] 0.01614745</code></pre>
+<pre><code>## [1] 0.4771482</code></pre>
 <pre class="r"><code>class(a) &lt;- &quot;symmetric&quot;
 center(a) # ordinary mean:  center.symmetric(a)</code></pre>
-<pre><code>## [1] -0.04478893</code></pre>
+<pre><code>## [1] 0.3292474</code></pre>
 <pre class="r"><code>mean(a)</code></pre>
-<pre><code>## [1] -0.04478893</code></pre>
+<pre><code>## [1] 0.3292474</code></pre>
 <pre class="r"><code>class(a) &lt;- &quot;anything_else&quot;
 center(a) # median</code></pre>
-<pre><code>## [1] -0.03706334</code></pre>
+<pre><code>## [1] 0.4754784</code></pre>
 <pre class="r"><code>median(a)</code></pre>
-<pre><code>## [1] -0.03706334</code></pre>
+<pre><code>## [1] 0.4754784</code></pre>
 <pre class="r"><code>b &lt;- rnorm(10)
 center(b)  # center.default(b); median(b)</code></pre>
-<pre><code>## [1] 0.08000553</code></pre>
+<pre><code>## [1] 0.008485375</code></pre>
 </div>
 </div>
 <div id="encapsulation" class="section level3">
@@ -837,7 +837,7 @@ cafe &lt;- Store$new()</code></pre>
 </div>
 <div id="inheritance" class="section level3">
 <h3>Inheritance</h3>
-<p>Inheritance allows object to share behavior. We will use R6 objects to demonstrate. (It is also possible to inheritate S3 objects, but it is not used very often in practice.)</p>
+<p>Inheritance allows object to share behavior. We will use R6 objects to demonstrate. (It is also possible to inherit S3 objects, but it is not used very often in practice.)</p>
 <pre class="r"><code>Rectangle &lt;- R6::R6Class(
   &quot;Rectangle&quot;,
   public = list(
@@ -853,7 +853,7 @@ cafe &lt;- Store$new()</code></pre>
     perimeter = function() {
       2 * (self$width + self$height)
     },
-    multiply = function(x, y) {
+    multiply = function(x = 1, y = 1) {
       self$width &lt;- self$width * x
       self$height &lt;- self$height * y
       invisible(self)
@@ -869,6 +869,8 @@ r</code></pre>
 <pre><code>## Rectangle with area 6</code></pre>
 <pre class="r"><code>r$perimeter()</code></pre>
 <pre><code>## [1] 10</code></pre>
+<pre class="r"><code>r$multiply(2, 1)$area()</code></pre>
+<pre><code>## [1] 12</code></pre>
 <p>Square is a special type of Rectangle. The following class extends the Rectangle to Square.</p>
 <pre class="r"><code>Square &lt;- R6::R6Class(
   &quot;Square&quot;,

@@ -551,7 +551,7 @@ See https://adv-r.hadley.nz/r6.html#finalizer
 
 ### Inheritance
 
-Inheritance allows object to share behavior. We will use R6 objects to demonstrate. (It is also possible to inheritate S3 objects, but it is not used very often in practice.)
+Inheritance allows object to share behavior. We will use R6 objects to demonstrate. (It is also possible to inherit S3 objects, but it is not used very often in practice.)
 
 ```{r}
 Rectangle <- R6::R6Class(
@@ -569,7 +569,7 @@ Rectangle <- R6::R6Class(
     perimeter = function() {
       2 * (self$width + self$height)
     },
-    multiply = function(x, y) {
+    multiply = function(x = 1, y = 1) {
       self$width <- self$width * x
       self$height <- self$height * y
       invisible(self)
@@ -586,6 +586,7 @@ Rectangle <- R6::R6Class(
 r <- Rectangle$new(2, 3)
 r
 r$perimeter()
+r$multiply(2, 1)$area()
 ```
 
 Square is a special type of Rectangle. The following class extends the Rectangle to Square.
