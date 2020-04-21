@@ -33,7 +33,7 @@
 | 04-02, 04-07, 04-09 | [functional programming](ch01-purrr/purrr.Rmd)  | [purrr](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch01-purrr/purrr.html)             |
 | 04-09, 04-14        | [object oriented programming](ch02-oop/oop.Rmd) | [oop](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch02-oop/oop.html)                   |
 | 04-16               | [debuging](ch03-debug-profile/debug.Rmd)        | [debug](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch03-debug-profile/debug.html)     |
-|                     | [profiling](ch03-debug-profile/profile.Rmd)     | [profile](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch03-debug-profile/profile.html) |
+| 04-21               | [profiling](ch03-debug-profile/profile.Rmd)     | [profile](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch03-debug-profile/profile.html) |
 
 ## Links
 
