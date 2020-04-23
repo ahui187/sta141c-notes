@@ -19,7 +19,9 @@ library(tidyverse)
 To run c++ code in R, you will need to first install a workable toolchain.
 
 - Windows
-  - Install [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+  - Install Rtools
+    - R 3.6.x: https://cran.r-project.org/bin/windows/Rtools/history.html
+    - R 4.0 https://cran.r-project.org/bin/windows/Rtools
 - macOS
   - Run `which clang` in terminal to see if you have already installed it
   - If not, run `xcode-select --install` to install it.

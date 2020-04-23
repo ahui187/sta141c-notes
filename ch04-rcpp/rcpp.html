@@ -406,7 +406,11 @@ summary {
 <ul>
 <li>Windows
 <ul>
-<li>Install <a href="https://cran.r-project.org/bin/windows/Rtools/">Rtools</a></li>
+<li>Install Rtools
+<ul>
+<li>R 3.6.x: <a href="https://cran.r-project.org/bin/windows/Rtools/history.html" class="uri">https://cran.r-project.org/bin/windows/Rtools/history.html</a></li>
+<li>R 4.0 <a href="https://cran.r-project.org/bin/windows/Rtools" class="uri">https://cran.r-project.org/bin/windows/Rtools</a></li>
+</ul></li>
 </ul></li>
 <li>macOS
 <ul>
@@ -490,7 +494,7 @@ int oneC() {
 </div>
 <div id="scalar-input-scalar-output" class="section level3">
 <h3>Scalar input, scalar output</h3>
-<p>The next example function implements a scalar version of the sign() function which returns 1 if the input is positive, and -1 if it’s negative:</p>
+<p>The next example function implements a scalar version of the <code>sign()</code> function which returns 1 if the input is positive, and -1 if it’s negative:</p>
 <pre class="r"><code>signR &lt;- function(x) {
   if (x &gt; 0) {
     1
