@@ -34,7 +34,8 @@
 | 04-09, 04-14        | [object oriented programming](ch02-oop/oop.Rmd) | [oop](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch02-oop/oop.html)                   |
 | 04-16               | [debuging](ch03-debug-profile/debug.Rmd)        | [debug](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch03-debug-profile/debug.html)     |
 | 04-21               | [profiling](ch03-debug-profile/profile.Rmd)     | [profile](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch03-debug-profile/profile.html) |
-| 04-23               | [Rcpp](ch04-rcpp/rcpp.Rmd)                      | [rcpp](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch04-rcpp/rcpp.html)                |
+| 04-23, 04-28        | [Rcpp](ch04-rcpp/rcpp.Rmd)                      | [rcpp](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch04-rcpp/rcpp.html)                |
+| 04-28               | [R packages](https://r-pkgs.org/)               |                                                                                                    |
 
 ## Links
 
