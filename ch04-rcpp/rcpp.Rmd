@@ -1,5 +1,5 @@
 ---
-title: "Profiling R Code"
+title: "Rcpp"
 output: 
   html_document: 
     toc: yes
@@ -12,7 +12,6 @@ knitr::opts_chunk$set(cache = TRUE)
 ```{r, message = FALSE}
 library(tidyverse)
 ```
-
 
 # System requirements
 
@@ -48,12 +47,14 @@ This function has no arguments and always returns the integer 1:
 oneR <- function() 1L
 ```
 
+
 ```{Rcpp}
 // [[Rcpp::export]]
 int oneC() {
   return 1;
 }
 ```
+
 
 - You must declare the type of output the function returns. 
 - Every statement is terminated by a `;`
@@ -143,6 +144,7 @@ sumR <- function(x) {
 }
 ```
 
+
 ```{Rcpp}
 // The first two lines import the namespace Rcpp for things such as `NumericVector`
 #include <Rcpp.h>
@@ -152,7 +154,7 @@ using namespace Rcpp;
 double sumC(NumericVector x) {
   int n = x.size();
   double total = 0;
-  for(int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     total += x[i];
   }
   return total;
@@ -169,16 +171,23 @@ double sumC(NumericVector x) {
 
 
 Let's benchmark the performances
-```{r, cached = TRUE}
+```{r, cached = TRUE, paged.print = FALSE}
 x <- runif(1e3)
 result <- bench::mark(
   sum(x),
   sumC(x),
-  sumR(x)
+  sumR(x),
+  relative = TRUE
 )
-ggplot2::autoplot(result)
+result
 ```
+```{r}
+autoplot(result, type = "violin")
+```
+
+
 Of course `sum` is the fastest because it is highly optimized.
+
 
 
 
@@ -191,7 +200,7 @@ pdistR <- function(x, ys) {
   sqrt((x - ys) ^ 2)
 }
 y <- runif(1e5)
-pdistR(0.5, y)
+# pdistR(0.5, y)
 ```
 
 ```{Rcpp}
@@ -204,7 +213,7 @@ NumericVector pdistC(double x, NumericVector ys) {
   NumericVector out(n);
 
   for(int i = 0; i < n; i++) {
-    out[i] = sqrt(pow(ys[i] - x, 2.0));
+    out[i] = sqrt(pow(x - ys[i], 2.0));
   }
   return out;
 }
@@ -216,13 +225,15 @@ NumericVector pdistC(double x, NumericVector ys) {
 - C++ is faster because it avoids the creation of temperary object like `x - ys` and `(x - ys)^2`.
 
 
-```{r}
+```{r, paged.print = FALSE}
 y <- runif(1e6)
-ggplot2::autoplot(bench::mark(
+result <- bench::mark(
   pdistR(0.5, y),
   pdistC(0.5, y)
-))
+)
+result
 ```
+
 
 - We saved about `5ms` by rewriting the R function in C++. Assume it takes 5 mins for you to write that function, you’d need to run it ~60 000 times to make rewriting worthwhile. 
 
@@ -264,13 +275,13 @@ NumericVector pdistC_sugar(double x, NumericVector ys) {
 }
 ```
 
-```{r}
+```{r, paged.print = FALSE}
 y <- runif(1e6)
-ggplot2::autoplot(bench::mark(
+bench::mark(
   pdistR(0.5, y),
   pdistC(0.5, y),
   pdistC_sugar(0.5, y)
-))
+)
 ```
 
 `pdistC_sugar` is the slowest among the three versions. The slowness is due to the creation of temporary objects such as `ys-x` and `pow(ys - x, 2.0)`.
@@ -321,21 +332,21 @@ NumericVector no_na(NumericVector x) {
 }
 ```
 
-```{r}
+```{r, paged.print = FALSE}
 R_no_na <- function(x) {
-    return( x[!is.na(x)] )
+    return(x[!is.na(x)])
 }
 set.seed(1)
 x <- rnorm(1e5)
 x[sample(1e5, 1e4)] <- NA
 
-ggplot2::autoplot(bench::mark(
+bench::mark(
   R_no_na(x),
   no_na(x)
-))
+)
 ```
 
-I'm curiously the performance of a native Rcpp.
+I'm curiously the performance of a native Rcpp. The function `R_IsNA` is a c function that checks if a number is NA.
 
 ```{Rcpp}
 #include <Rcpp.h>
@@ -467,7 +478,7 @@ NumericVector colSumsC(NumericMatrix x) {
 
 ```{r}
 x <- matrix(runif(1e6), 1e3)
-ggplot2::autoplot(bench::mark(
+autoplot(bench::mark(
   colSums(x),
   colSumsR(x),
   colSumsC(x)
