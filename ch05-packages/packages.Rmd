@@ -1,0 +1,15 @@
+---
+title: "R Packages"
+output: 
+  html_document: 
+    toc: yes
+---
+
+This chapter is about writing an R package.
+
+- A great resource: https://r-pkgs.org/ by Hadley Wickham and Jennifer Bryan
+- Chapter 2:
+    - `create_package()`
+    - `use_git()`
+    - `use_r()`
+    - ...
