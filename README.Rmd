@@ -23,7 +23,8 @@ output:
 | 04-09, 04-14        | [object oriented programming](ch02-oop/oop.Rmd) | [oop]
 | 04-16               | [debuging](ch03-debug-profile/debug.Rmd)        | [debug]
 | 04-21               | [profiling](ch03-debug-profile/profile.Rmd)     | [profile]
-| 04-23               | [Rcpp](ch04-rcpp/rcpp.Rmd)     | [rcpp]
+| 04-23, 04-28        | [Rcpp](ch04-rcpp/rcpp.Rmd)     | [rcpp]
+| 04-28               | [R packages](https://r-pkgs.org/)     |
 
 
 [introduction]: README.md
