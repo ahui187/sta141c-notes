@@ -25,7 +25,7 @@ output:
 | 04-21               | [profiling](ch03-debug-profile/profile.Rmd)     | [profile]
 | 04-23, 04-28        | [Rcpp](ch04-rcpp/rcpp.Rmd)                      | [rcpp]
 | 04-30               | [R packages](ch05-packages/packages.Rmd)        | [packages]
-| 05-5                | [Parallel](ch06-parallel/parallel.Rmd)        | [parallel]
+| 05-05               | [Parallel](ch06-parallel/parallel.Rmd)          | [parallel]
 
 
 [introduction]: README.md
