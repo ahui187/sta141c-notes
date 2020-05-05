@@ -24,7 +24,8 @@ output:
 | 04-16               | [debuging](ch03-debug-profile/debug.Rmd)        | [debug]
 | 04-21               | [profiling](ch03-debug-profile/profile.Rmd)     | [profile]
 | 04-23, 04-28        | [Rcpp](ch04-rcpp/rcpp.Rmd)                      | [rcpp]
-| 04-28               | [R packages](ch05-packages/packages.Rmd)        | [packages]
+| 04-30               | [R packages](ch05-packages/packages.Rmd)        | [packages]
+| 05-5                | [Parallel](ch06-parallel/parallel.Rmd)        | [parallel]
 
 
 [introduction]: README.md
@@ -34,6 +35,7 @@ output:
 [profile]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch03-debug-profile/profile.html
 [rcpp]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch04-rcpp/rcpp.html
 [packages]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch05-packages/packages.html
+[parallel]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch06-parallel/parallel.html
 
 
 ## Links
