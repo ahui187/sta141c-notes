@@ -353,7 +353,7 @@ I'm curiously the performance of a native Rcpp. The function `R_IsNA` is a c fun
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericVector no_na2(NumericVector x) {
+NumericVector no_na_fast(NumericVector x) {
   int n = x.size();
   int m = 0;
   int i, j = 0;
@@ -374,14 +374,30 @@ NumericVector no_na2(NumericVector x) {
 autoplot(bench::mark(
   R_no_na(x),
   no_na(x),
-  no_na2(x)
+  no_na_fast(x)
 ))
 ```
 
-Again, we see that a naive for loop is faster.
+Again, we see that a native for loop is faster.
 
 
 ### Values could be modified in place!!
+
+```{r}
+x <- 1:10
+lobstr::obj_addr(x)
+y <- x
+lobstr::obj_addr(y)
+y[2] <- 3
+```
+
+```{r}
+lobstr::obj_addr(x)
+```
+```{r}
+lobstr::obj_addr(y)
+```
+In R, values are not modified in place
 
 
 With cloning the object, any changes in C++ may modify the values in R.
@@ -395,11 +411,20 @@ void modifyVec(NumericVector x) {
   x[0] = 42;
 }
 ```
+PS: we use `void` because there are no return values.
 
 ```{r}
 x <- c(3, 5)
+lobstr::obj_addr(x)
+```
+
+
+```{r}
 modifyVec(x)
 x
+```
+```{r}
+lobstr::obj_addr(x)
 ```
 
 
@@ -450,6 +475,7 @@ colSumsR <- function(x) {
 }
 ```
 
+
 ```{r}
 (x <- matrix(rnorm(9), nc = 3))
 colSumsR(x)
@@ -471,6 +497,12 @@ NumericVector colSumsC(NumericMatrix x) {
   }
   return output;
 }
+
+// [[Rcpp::export]]
+NumericVector colSumsC_Sugar(NumericMatrix x) {
+  return colSums(x);
+}
+
 ```
 
 - `.ncol()` and `.nrow()` return the number of columns and rows of the matrix
@@ -481,7 +513,8 @@ x <- matrix(runif(1e6), 1e3)
 autoplot(bench::mark(
   colSums(x),
   colSumsR(x),
-  colSumsC(x)
+  colSumsC(x),
+  colSumsC_Sugar(x)
 ))
 ```
 
@@ -492,7 +525,7 @@ Again, we see that `colSumsC` is much faster than the pure R implementation `col
 ### DataFrame input and DataFrame output
 
 
-The following example modifies some values of a dataframe.
+The following example modifies (not in place) some values of a dataframe.
 
 ```{Rcpp}
 #include <Rcpp.h>
@@ -520,9 +553,63 @@ df <- tibble(
 modifyDataFrame(df)
 ```
 
+```{r}
+df
+```
+
+The following example modifies (in place) some values of a dataframe.
+
+```{Rcpp}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+void modifyDataFrame2(DataFrame df) {
+  // casting the columns to their corresponding types
+  NumericVector a = as<NumericVector>(df["a"]);
+  CharacterVector b = as<CharacterVector>(df["b"]);
+  // make some changes
+  a[1] = 42;
+  b[1] = "foo";
+  // we don't have to return because we are modifying in place.
+}
+```
+
+```{r}
+df <- tibble(
+    a = c(1, 2, 3),
+    b = c("x", "y", "z"))
+modifyDataFrame2(df)
+df
+```
+
+#### To clone vs not to clone
+
+- just want to read the vectors, use `as`
+- want to modify values, use `clone` unless the modifications should be in place.
+
+
 ### List input
 
 This is again not a good example because the same task could be easily done in R. It calcualtes the mean percentage error (`mpe()`) of a linear model.
+
+```{r}
+mod <- lm(mpg ~ wt, data = mtcars)
+```
+
+```{r}
+mpeR <- function(mod) {
+  if (!inherits(mod, "lm")) {
+    stop("Input must be a linear model")
+  }
+  mean(mod$residuals / (mod$fitted.values + mod$residuals))
+}
+```
+
+```{r}
+mpeR(mod)
+```
+
 
 ```{Rcpp}
 #include <Rcpp.h>
@@ -546,7 +633,6 @@ double mpe(List mod) {
 ```
 
 ```{r}
-mod <- lm(mpg ~ wt, data = mtcars)
 mpe(mod)
 ```
 
@@ -558,17 +644,32 @@ using namespace Rcpp;
 
 // [[Rcpp::export]]
 RObject callWithTwo(Function f) {
-  return f(2);
+  RObject f2 = f(2);
   // if you want to use named argument
   // return f(_["x"] = 2);
+  return f2;
+}
+
+// [[Rcpp::export]]
+NumericVector callWithTwoNumeric(Function f) {
+  NumericVector f2 = as<NumericVector>(f(2));
+  return f2;
 }
 ```
+
+PS: we use `RObject` because we don't know what it returns.
 
 ```{r}
 f <- function(x) x + 1
 g <- function(x) 3^x
 callWithTwo(f)
 callWithTwo(g)
+```
+
+```{r, error = TRUE}
+callWithTwoNumeric(f)
+h <- function(x) "hello"
+callWithTwoNumeric(h)
 ```
 
 
@@ -582,7 +683,7 @@ callWithTwo(g)
 - armadillo and eigen library
 
   If you want to do linear algebra opertions in C++, we should take a look at
-  [Rcpparmadillo](https://CRAN.R-project.org/package=Rcpparmadillo) and [RcppEigen](https://CRAN.R-project.org/package=RcppEigen).
+  [Rcpparmadillo](https://CRAN.R-project.org/package=Rcpparmadillo) and   [RcppEigen](https://CRAN.R-project.org/package=RcppEigen).
 
 
 
