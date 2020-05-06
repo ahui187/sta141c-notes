@@ -384,16 +384,16 @@ summary {
 <ul>
 <li><a href="#implict-parallel">Implict Parallel</a></li>
 <li><a href="#embarrassingly-parallel">Embarrassingly Parallel</a></li>
-<li><a href="#the-package-parallel">The package <code>parallel</code></a></li>
+<li><a href="#the-package-parallel">The package <code>parallel</code></a>
+<ul>
 <li><a href="#processing-chunk">Processing Chunk</a></li>
 <li><a href="#load-balancing">Load balancing</a></li>
+<li><a href="#caution">Caution</a></li>
 <li><a href="#interact-directly-with-the-workers">Interact directly with the workers</a></li>
-<li><a href="#another-pouplar-package-foreach">Another pouplar package: <code>foreach</code></a></li>
-<li><a href="#map-or-lapply-like-syntax"><code>map</code> or <code>lapply</code> like syntax</a>
-<ul>
-<li><a href="#mclapply-from-parallel-unix-macos-only"><code>mclapply</code> from <code>parallel</code> (unix / macOS only)</a></li>
-<li><a href="#package-furrr">package <code>furrr</code></a></li>
 </ul></li>
+<li><a href="#another-pouplar-package-foreach">Another pouplar package: <code>foreach</code></a></li>
+<li><a href="#mclapply-from-parallel-unix-macos-only"><code>mclapply</code> from <code>parallel</code> (unix / macOS only)</a></li>
+<li><a href="#package-furrr">Package <code>furrr</code></a></li>
 <li><a href="#the-honorable-mention-multidplyr">The honorable mention <code>multidplyr</code></a></li>
 </ul></li>
 </ul>
@@ -469,31 +469,31 @@ slow_task &lt;- function(x) {
 list_of_vectors &lt;- replicate(10, list(rnorm(5000)))
 list_of_vectors %&gt;% glimpse()</code></pre>
 <pre><code>## List of 10
-##  $ : num [1:5000] -0.931 -1.98 0.682 0.679 -0.129 ...
-##  $ : num [1:5000] 1.2621 -0.00417 0.66648 0.14361 -1.036 ...
-##  $ : num [1:5000] -0.829 -1.023 0.385 -0.285 0.653 ...
-##  $ : num [1:5000] 0.83 -1.004 0.487 1.42 -0.288 ...
-##  $ : num [1:5000] -0.274 0.58 -1.598 -1.256 1.548 ...
-##  $ : num [1:5000] 0.636 0.721 -0.818 -1.691 -0.344 ...
-##  $ : num [1:5000] -0.817 -0.557 -1.637 0.575 0.647 ...
-##  $ : num [1:5000] -0.268 0.589 -1.103 -0.146 0.452 ...
-##  $ : num [1:5000] 1.946 -1.48 0.912 0.979 -0.566 ...
-##  $ : num [1:5000] 0.875 -1.016 0.69 -0.961 -0.509 ...</code></pre>
+##  $ : num [1:5000] 0.386 0.797 -0.186 -0.884 -1.054 ...
+##  $ : num [1:5000] 0.408 -0.508 -0.716 -0.309 0.977 ...
+##  $ : num [1:5000] -0.713 -0.077 0.199 0.699 0.533 ...
+##  $ : num [1:5000] -1.106 -1.33 0.538 0.779 0.614 ...
+##  $ : num [1:5000] 0.488 0.33 -0.265 0.157 0.919 ...
+##  $ : num [1:5000] -0.746 1.112 -1.034 0.803 -0.931 ...
+##  $ : num [1:5000] 1.128 0.169 0.378 2.088 1.469 ...
+##  $ : num [1:5000] -0.1624 0.0742 -0.477 0.415 -0.5745 ...
+##  $ : num [1:5000] 0.448 -0.645 -1.65 -0.261 -0.306 ...
+##  $ : num [1:5000] 0.166 -0.586 -0.745 0.544 0.342 ...</code></pre>
 <pre class="r"><code>list_of_vectors %&gt;% map_dbl(slow_task)</code></pre>
 <p>However, these commands only run in a single process, it means, if the list is doubled, the time is also at least doubled.</p>
 <pre class="r"><code>system.time({
   list_of_vectors %&gt;% map_dbl(slow_task)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   1.547   0.590   2.218</code></pre>
+##   1.670   0.736   2.993</code></pre>
 <pre class="r"><code># double the list
 longer_list_of_vectors &lt;- c(list_of_vectors, list_of_vectors)
 system.time({
   longer_list_of_vectors %&gt;% map_dbl(slow_task)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   2.756   1.175   4.135</code></pre>
-<p>We are hoping to use multiple processes to speed up the job. The <strong>conventaional</strong> way is to use the <code>parallel</code> package.</p>
+##   2.871   1.353   5.002</code></pre>
+<p>We are hoping to use multiple processes to speed up the job. The <strong>conventional</strong> way is to use the <code>parallel</code> package.</p>
 </div>
 <div id="the-package-parallel" class="section level2">
 <h2>The package <code>parallel</code></h2>
@@ -506,38 +506,38 @@ detectCores()</code></pre>
 cl &lt;- makeCluster(4)
 parLapply(cl, list_of_vectors, slow_task)</code></pre>
 <pre><code>## [[1]]
-## [1] 19491.66
+## [1] 6.949472
 ## 
 ## [[2]]
-## [1] 754.7304
+## [1] 119.2036
 ## 
 ## [[3]]
-## [1] 1707.913
+## [1] 1680.512
 ## 
 ## [[4]]
-## [1] 1812.827
+## [1] 3257.837
 ## 
 ## [[5]]
-## [1] 87853.07
+## [1] 4298.167
 ## 
 ## [[6]]
-## [1] 113.1118
+## [1] 2445.736
 ## 
 ## [[7]]
-## [1] 6857.832
+## [1] 4791.67
 ## 
 ## [[8]]
-## [1] 2353.992
+## [1] 1309.076
 ## 
 ## [[9]]
-## [1] 4277.829
+## [1] 1507.859
 ## 
 ## [[10]]
-## [1] 38.46981</code></pre>
+## [1] 5374.227</code></pre>
 <pre class="r"><code># or if you want simplified result
 parSapply(cl, list_of_vectors, slow_task)</code></pre>
-<pre><code>##  [1] 19491.65839   754.73041  1707.91344  1812.82749 87853.07070   113.11175
-##  [7]  6857.83170  2353.99157  4277.82925    38.46981</code></pre>
+<pre><code>##  [1]    6.949472  119.203610 1680.512246 3257.836507 4298.166980 2445.736221
+##  [7] 4791.670494 1309.075815 1507.859268 5374.226917</code></pre>
 <pre class="r"><code># stop the cluster after use
 stopCluster(cl)</code></pre>
 <p>Remark: you don’t have to make and stop clusters for every operation, you could make a cluster in the very beginning of your script and close it at the very end.</p>
@@ -549,76 +549,97 @@ stopCluster(cl)</code></pre>
   result
 }
 
-system.time(run_each(longer_list_of_vectors, slow_task, 2))</code></pre>
-<pre><code>##    user  system elapsed 
-##   0.006   0.006   2.551</code></pre>
-<pre class="r"><code>system.time(run_each(longer_list_of_vectors, slow_task, 8))</code></pre>
-<pre><code>##    user  system elapsed 
-##   0.020   0.021   2.931</code></pre>
-</div>
-<div id="processing-chunk" class="section level2">
-<h2>Processing Chunk</h2>
-<p>The iteratable is divided into chunks before sending the chunks to the workers. <code>Sys.getpid()</code> tells us the process id of a worker.</p>
+bench::mark(
+  run_each(longer_list_of_vectors, slow_task, 2),
+  run_each(longer_list_of_vectors, slow_task, 4),
+  run_each(longer_list_of_vectors, slow_task, 6)
+)</code></pre>
+<pre><code>## # A tibble: 3 x 6
+##   expression                                       min median `itr/sec`
+##   &lt;bch:expr&gt;                                     &lt;bch&gt; &lt;bch:&gt;     &lt;dbl&gt;
+## 1 run_each(longer_list_of_vectors, slow_task, 2) 2.41s  2.41s     0.415
+## 2 run_each(longer_list_of_vectors, slow_task, 4) 1.93s  1.93s     0.519
+## 3 run_each(longer_list_of_vectors, slow_task, 6) 2.36s  2.36s     0.424
+## # … with 2 more variables: mem_alloc &lt;bch:byt&gt;, `gc/sec` &lt;dbl&gt;</code></pre>
+<p>PS: it is not always true that the more cpus, the faster the result.</p>
+<div id="processing-chunk" class="section level3">
+<h3>Processing Chunk</h3>
+<p>The tasks are divided into chunks before sending the chunks to the workers. <code>Sys.getpid()</code> tells us the process id of a worker.</p>
 <pre class="r"><code>cl &lt;- makeCluster(4)</code></pre>
 <pre class="r"><code>parSapply(cl, 1:10, function(x) {
   Sys.getpid()
 })</code></pre>
-<pre><code>##  [1] 40005 40005 40005 40023 40023 40036 40036 40048 40048 40048</code></pre>
+<pre><code>##  [1] 51555 51555 51555 51567 51567 51579 51579 51591 51591 51591</code></pre>
 <pre class="r"><code>parSapply(cl, 1:10, function(x) {
-  Sys.getpid()
-},
-chunk.size = 2
+    Sys.getpid()
+  },
+  chunk.size = 2
 )</code></pre>
-<pre><code>##  [1] 40005 40005 40023 40023 40036 40036 40048 40048 40005 40005</code></pre>
+<pre><code>##  [1] 51555 51555 51567 51567 51579 51579 51591 51591 51555 51555</code></pre>
 <pre class="r"><code>parSapply(cl, 1:10, function(x) {
-  Sys.getpid()
-},
-chunk.size = 1
+    Sys.getpid()
+  },
+  chunk.size = 1
 )</code></pre>
-<pre><code>##  [1] 40005 40023 40036 40048 40005 40023 40036 40048 40005 40023</code></pre>
+<pre><code>##  [1] 51555 51567 51579 51591 51555 51567 51579 51591 51555 51567</code></pre>
 <pre class="r"><code>stopCluster(cl)</code></pre>
 </div>
-<div id="load-balancing" class="section level2">
-<h2>Load balancing</h2>
+<div id="load-balancing" class="section level3">
+<h3>Load balancing</h3>
 <p><code>parLapply</code> pre-schedules the tasks to each work. It could be suboptimal when different tasks require different amount of time to complete.</p>
 <pre class="r"><code>cl &lt;- makeCluster(4)</code></pre>
-<pre class="r"><code>x &lt;- c(3, 3, 1, 1, 1, 1, 1, 1)
+<pre class="r"><code>x &lt;- c(3, 3, 1, 1, 1, 1, 1, 1, 1, 1) # length 10
 pause &lt;- function(x) {
   Sys.sleep(x)
 }
 
 system.time({
-  map(x, pause)
+  map(x, pause)  # sequentially, 14 seconds
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.002   0.000  12.024</code></pre>
+##   0.001   0.000  14.029</code></pre>
 <pre class="r"><code>system.time({
-  parLapply(cl, x, pause)
+  parLapply(cl, x, pause)  # process 1 runs task 1, 2, 3
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.001   0.000   6.003</code></pre>
+##   0.002   0.000   7.007</code></pre>
 <pre class="r"><code>system.time({
-  parLapply(cl, x, pause, chunk.size = 2)
+  parLapply(cl, x, pause, chunk.size = 2)  # process 1 runs task 1, 2, 9, 10
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.001   0.000   6.009</code></pre>
+##   0.001   0.001   8.004</code></pre>
 <pre class="r"><code>system.time({
-  parLapply(cl, x, pause, chunk.size = 1)
+  parLapply(cl, x, pause, chunk.size = 1)  # process 1 runs task 1, 5, 9
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.002   0.001   4.004</code></pre>
+##   0.002   0.000   5.012</code></pre>
 <p>Instead of preshceduling the tasks, a task could also be assigned to a free worker dynamically using <code>parLapplyLB</code>.</p>
 <pre class="r"><code>system.time({
-  parLapplyLB(cl, x, pause)
+  parLapplyLB(cl, x, pause, chunk.size = 1)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.002   0.001   3.011</code></pre>
-<p>Note that it only takes 3 seconds now.</p>
+##   0.003   0.000   4.008</code></pre>
+<p>Note that it only takes 4 seconds now.</p>
 <pre class="r"><code>stopCluster(cl)</code></pre>
 </div>
-<div id="interact-directly-with-the-workers" class="section level2">
-<h2>Interact directly with the workers</h2>
-<p>We just saw an quick example on using <code>parLapply</code>. Let’s try a few more things.</p>
+<div id="caution" class="section level3">
+<h3>Caution</h3>
+<p>We need to make sure that objects are avaiable in the cluster</p>
+<pre class="r"><code>cl &lt;- makeCluster(4)</code></pre>
+<pre class="r"><code>y &lt;- 10
+add &lt;- function(x) {
+  x + y
+}</code></pre>
+<pre class="r"><code>parSapply(cl, 1:10, add)</code></pre>
+<pre><code>## Error in checkForRemoteErrors(val): 4 nodes produced errors; first error: object &#39;y&#39; not found</code></pre>
+<pre class="r"><code>clusterExport(cl, &quot;y&quot;)
+parSapply(cl, 1:10, add)</code></pre>
+<pre><code>##  [1] 11 12 13 14 15 16 17 18 19 20</code></pre>
+<pre class="r"><code>stopCluster(cl)</code></pre>
+</div>
+<div id="interact-directly-with-the-workers" class="section level3">
+<h3>Interact directly with the workers</h3>
+<p>We just saw an quick example on using <code>parLapply/parSapply</code>. Let’s try a few more things.</p>
 <pre class="r"><code>cl &lt;- makeCluster(4)</code></pre>
 <p>We could run some arbitrary commands on each of the workers</p>
 <pre class="r"><code>clusterEvalQ(cl, {
@@ -626,30 +647,30 @@ system.time({
   mean(x)
 })</code></pre>
 <pre><code>## [[1]]
-## [1] 0.03046563
+## [1] 0.04777062
 ## 
 ## [[2]]
-## [1] -0.05320285
+## [1] 0.04049093
 ## 
 ## [[3]]
-## [1] 0.1776399
+## [1] -0.0889552
 ## 
 ## [[4]]
-## [1] -0.1296582</code></pre>
+## [1] -0.0887285</code></pre>
 <pre class="r"><code>clusterEvalQ(cl, {
   Sys.getpid()
 })</code></pre>
 <pre><code>## [[1]]
-## [1] 40167
+## [1] 51752
 ## 
 ## [[2]]
-## [1] 40179
+## [1] 51766
 ## 
 ## [[3]]
-## [1] 40192
+## [1] 51778
 ## 
 ## [[4]]
-## [1] 40205</code></pre>
+## [1] 51791</code></pre>
 <p>Global variables in master are not exported to the worker automatically (the same is true for <code>parLapply</code>)</p>
 <pre class="r"><code>y &lt;- 3
 clusterEvalQ(cl, {
@@ -700,16 +721,16 @@ clusterEvalQ(cl, {
   rnorm(5)
 })</code></pre>
 <pre><code>## [[1]]
-## [1] -0.4760249 -0.5534591 -0.8365898  0.3099835  0.7158278
+## [1] -1.1612737  0.1532464 -0.8439279 -0.0550240 -1.0959290
 ## 
 ## [[2]]
-## [1] -0.41177327 -0.76306349 -0.02956171 -1.31999359 -0.69610935
+## [1]  0.2157837 -0.7120093 -0.6989865  1.0755194 -2.6427555
 ## 
 ## [[3]]
-## [1] -1.7366623 -0.4875462 -0.8592464  0.1233451  1.7603322
+## [1] -0.2449134  0.1033346 -1.6684851  0.6714009  2.3109728
 ## 
 ## [[4]]
-## [1]  1.1039178  0.1490468  1.0022363 -1.1981094  0.5019417</code></pre>
+## [1]  0.1626639 -0.6495891 -2.0662671  1.2466764  1.1619921</code></pre>
 <pre class="r"><code># wrong again
 clusterEvalQ(cl, {
   set.seed(123)
@@ -744,6 +765,7 @@ clusterEvalQ(cl, {
 <pre class="r"><code># do not forget to close the cluster
 stopCluster(cl)</code></pre>
 </div>
+</div>
 <div id="another-pouplar-package-foreach" class="section level2">
 <h2>Another pouplar package: <code>foreach</code></h2>
 <p>As we have seen a bit earlier, we might need to use <code>clusterExport</code> to export certain gloabl variables. It would be a bit cumbersome. To reduce the extra steps, we could consider <code>foreach</code> and <code>doParallel</code>. They will send all the globals to the workers before running the tasks. (However, I don’t personally recommand <code>foreach</code> though it is (was!?) popular, I perfer <code>furrr</code> in the below)</p>
@@ -767,10 +789,8 @@ foreach(i = seq_len(nrow(m)), .combine = c) %dopar% {
 <pre class="r"><code>stopCluster(cl)</code></pre>
 <p>However, it is not quite “functional” as <code>map</code>, <code>lapply</code> and <code>parLapply</code>.</p>
 </div>
-<div id="map-or-lapply-like-syntax" class="section level2">
-<h2><code>map</code> or <code>lapply</code> like syntax</h2>
-<div id="mclapply-from-parallel-unix-macos-only" class="section level3">
-<h3><code>mclapply</code> from <code>parallel</code> (unix / macOS only)</h3>
+<div id="mclapply-from-parallel-unix-macos-only" class="section level2">
+<h2><code>mclapply</code> from <code>parallel</code> (unix / macOS only)</h2>
 <p>Remark: <code>mclapply</code> relies on forking, it means that it doesn’t work on Windows. We will discuss a cross platform approach.)</p>
 <pre class="r"><code># in default, `mclapply` uses 2 cores
 system.time({
@@ -780,7 +800,7 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.004   0.006   4.014</code></pre>
+##   0.007   0.015   4.018</code></pre>
 <pre class="r"><code>system.time({
   mclapply(
     c(3, 3, 1, 1, 1, 1, 1, 1),
@@ -790,10 +810,10 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.015   0.024   3.026</code></pre>
+##   0.015   0.026   3.022</code></pre>
 </div>
-<div id="package-furrr" class="section level3">
-<h3>package <code>furrr</code></h3>
+<div id="package-furrr" class="section level2">
+<h2>Package <code>furrr</code></h2>
 <p><code>furrr</code> provides functions which are very similar to those in <code>purrr</code>. One nice thing about <code>furrr</code> is that it doesn’t send absolutely every global variables to the workers as <code>foreach</code> and <code>mclapply</code>. It does lexical analysis to deduce what objects are needed and only transfer them to the workers. It also loads libraries automatically in the workers.</p>
 <pre class="r"><code>library(furrr)</code></pre>
 <pre><code>## Loading required package: future</code></pre>
@@ -806,7 +826,7 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.086   0.061   2.110</code></pre>
+##   0.088   0.074   2.121</code></pre>
 <p><code>future_map</code> has a family of type speific functions. For example,</p>
 <pre class="r"><code>future_map_dbl(list(1:10, 11:20, 21:30, 31:41), ~ sum(.))</code></pre>
 <pre><code>## [1]  55 155 255 396</code></pre>
@@ -819,7 +839,7 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.063   0.044   6.028</code></pre>
+##   0.069   0.057   6.032</code></pre>
 <pre class="r"><code># with load balanacing
 system.time({
   future_map(
@@ -829,8 +849,7 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.131   0.117   3.976</code></pre>
-</div>
+##   0.134   0.130   3.975</code></pre>
 </div>
 <div id="the-honorable-mention-multidplyr" class="section level2">
 <h2>The honorable mention <code>multidplyr</code></h2>

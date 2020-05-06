@@ -20,10 +20,13 @@ library(tidyverse)
 ## Implict Parallel
 
 - BLAS (Basic Linear Algebra Subroutines)
-  - CRAN R shippings with a [version](https://github.com/wch/r-source/tree/trunk/src/extra/blas) of single threaded BLAS library.
-  - [Microsoft R Open](https://mran.microsoft.com/open) ships with Intel MKL (Win/Linux) / Accelerate ML (macOS) BLAS libraries.
+  - CRAN R shippings with a [version](https://github.com/wch/r-source/tree/trunk/src/extra/blas) 
+    of single threaded BLAS library.
+  - [Microsoft R Open](https://mran.microsoft.com/open) ships with 
+    Intel MKL (Win/Linux) / Accelerate ML (macOS) BLAS libraries.
   - on macOS, R could be configured to use the optimized BLAS from Apple’s Accelerate framework
-  - We could also install R with different BLAS libraries such as [openblas](https://github.com/xianyi/OpenBLAS) or [ATLAS](http://math-atlas.sourceforge.net/)
+  - We could also install R with different BLAS libraries such as 
+    [openblas](https://github.com/xianyi/OpenBLAS) or [ATLAS](http://math-atlas.sourceforge.net/)
 
 
 ## Embarrassingly Parallel
@@ -77,7 +80,7 @@ system.time({
 })
 ```
 
-We are hoping to use multiple processes to speed up the job. The **conventaional** way is to use the `parallel` package.
+We are hoping to use multiple processes to speed up the job. The **conventional** way is to use the `parallel` package.
 
 ## The package `parallel`
 
@@ -103,7 +106,7 @@ Remark: you don't have to make and stop clusters for every operation, you could 
 
 Let's test the speed improvement
 
-```{r}
+```{r, paged.print = FALSE}
 run_each <- function(x, fun, n_cores) {
   cl <- makeCluster(n_cores)
   result <- parLapply(cl, x, fun)
@@ -111,14 +114,18 @@ run_each <- function(x, fun, n_cores) {
   result
 }
 
-system.time(run_each(longer_list_of_vectors, slow_task, 2))
-system.time(run_each(longer_list_of_vectors, slow_task, 8))
+bench::mark(
+  run_each(longer_list_of_vectors, slow_task, 2),
+  run_each(longer_list_of_vectors, slow_task, 4),
+  run_each(longer_list_of_vectors, slow_task, 6)
+)
 ```
+PS: it is not always true that the more cpus, the faster the result.
 
 
-## Processing Chunk
+### Processing Chunk
 
-The iteratable is divided into chunks before sending the chunks to the workers. `Sys.getpid()` tells us the process id of a worker.
+The tasks are divided into chunks before sending the chunks to the workers. `Sys.getpid()` tells us the process id of a worker.
 
 ```{r}
 cl <- makeCluster(4)
@@ -129,14 +136,14 @@ parSapply(cl, 1:10, function(x) {
   Sys.getpid()
 })
 parSapply(cl, 1:10, function(x) {
-  Sys.getpid()
-},
-chunk.size = 2
+    Sys.getpid()
+  },
+  chunk.size = 2
 )
 parSapply(cl, 1:10, function(x) {
-  Sys.getpid()
-},
-chunk.size = 1
+    Sys.getpid()
+  },
+  chunk.size = 1
 )
 ```
 
@@ -145,7 +152,7 @@ stopCluster(cl)
 ```
 
 
-## Load balancing
+### Load balancing
 
 
 `parLapply` pre-schedules the tasks to each work. It could be suboptimal when different tasks require different amount of time to complete.
@@ -155,23 +162,23 @@ cl <- makeCluster(4)
 ```
 
 ```{r}
-x <- c(3, 3, 1, 1, 1, 1, 1, 1)
+x <- c(3, 3, 1, 1, 1, 1, 1, 1, 1, 1) # length 10
 pause <- function(x) {
   Sys.sleep(x)
 }
 
 system.time({
-  map(x, pause)
+  map(x, pause)  # sequentially, 14 seconds
 })
 
 system.time({
-  parLapply(cl, x, pause)
+  parLapply(cl, x, pause)  # process 1 runs task 1, 2, 3
 })
 system.time({
-  parLapply(cl, x, pause, chunk.size = 2)
+  parLapply(cl, x, pause, chunk.size = 2)  # process 1 runs task 1, 2, 9, 10
 })
 system.time({
-  parLapply(cl, x, pause, chunk.size = 1)
+  parLapply(cl, x, pause, chunk.size = 1)  # process 1 runs task 1, 5, 9
 })
 ```
 
@@ -179,10 +186,10 @@ Instead of preshceduling the tasks, a task could also be assigned to a free work
 
 ```{r}
 system.time({
-  parLapplyLB(cl, x, pause)
+  parLapplyLB(cl, x, pause, chunk.size = 1)
 })
 ```
-Note that it only takes 3 seconds now.
+Note that it only takes 4 seconds now.
 
 
 ```{r}
@@ -190,9 +197,37 @@ stopCluster(cl)
 ```
 
 
-## Interact directly with the workers
+### Caution
 
-We just saw an quick example on using `parLapply`. Let's try a few more things.
+We need to make sure that objects are avaiable in the cluster
+
+```{r}
+cl <- makeCluster(4)
+```
+
+```{r}
+y <- 10
+add <- function(x) {
+  x + y
+}
+```
+
+```{r, error = TRUE}
+parSapply(cl, 1:10, add)
+```
+
+```{r}
+clusterExport(cl, "y")
+parSapply(cl, 1:10, add)
+```
+```{r}
+stopCluster(cl)
+```
+
+
+### Interact directly with the workers
+
+We just saw an quick example on using `parLapply/parSapply`. Let's try a few more things.
 
 ```{r}
 cl <- makeCluster(4)
@@ -219,6 +254,7 @@ clusterEvalQ(cl, {
   y + 1
 })
 ```
+
 `clusterExport` exports the global variables to each worker.
 ```{r}
 clusterExport(cl, "y")
@@ -294,9 +330,7 @@ stopCluster(cl)
 However, it is not quite "functional" as `map`, `lapply` and `parLapply`.
 
 
-## `map` or `lapply` like syntax
-
-### `mclapply` from `parallel` (unix / macOS only)
+## `mclapply` from `parallel` (unix / macOS only)
 
 Remark: `mclapply` relies on forking, it means that it doesn't work on Windows. We will discuss a cross platform approach.)
 
@@ -319,7 +353,7 @@ system.time({
 })
 ```
 
-### package `furrr`
+## Package `furrr`
 
 `furrr` provides functions which are very similar to those in `purrr`.
 One nice thing about `furrr` is that it doesn't send absolutely every global variables to the workers as `foreach` and `mclapply`. It does lexical analysis to deduce what objects are needed and only transfer them to the workers. It also loads libraries automatically in the workers.
