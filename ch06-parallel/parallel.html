@@ -1611,7 +1611,10 @@ summary {
 <li><a href="#package-foreach">Package: <code>foreach</code></a></li>
 <li><a href="#package-furrr">Package <code>furrr</code></a></li>
 <li><a href="#fork-cluster">Fork cluster</a></li>
-<li><a href="#divide-and-conquer-a.k.a.-mapreduce">Divide and conquer a.k.a. mapreduce</a></li>
+<li><a href="#divide-and-conquer-a.k.a.-mapreduce">Divide and conquer a.k.a. mapreduce</a>
+<ul>
+<li><a href="#more-efficient-file-reading-by-using-vroom.">More efficient file reading by using <code>vroom</code>.</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </div>
@@ -2100,14 +2103,44 @@ m &lt;- 10
 groups &lt;- sample(seq_len(m), nrow(flights), replace = TRUE)
 dir.create(&quot;flights/&quot;, showWarnings = FALSE)
 for (i in seq_len(m)) {
-  write_csv(filter(flights, groups == i), str_c(&quot;flights/&quot;, i, &quot;.csv&quot;)) 
+  write_csv(filter(flights, groups == i), str_c(&quot;flights/&quot;, i, &quot;.csv&quot;))
 }</code></pre>
-<pre class="r"><code>suppressWarnings(plan(multiprocess, workers = 4))
-
-file_names &lt;- file.path(&quot;flights&quot;, list.files(&quot;flights&quot;))
+<pre class="r"><code>suppressWarnings(plan(multiprocess, workers = 4))</code></pre>
+<pre class="r"><code>file_names &lt;- file.path(&quot;flights&quot;, list.files(&quot;flights&quot;))
 
 mean_list &lt;- file_names %&gt;% future_map(~{
   df &lt;- read_csv(., col_types = cols())
+  mean(df$dep_delay, na.rm = TRUE)
+})
+
+(mean_dep_delay &lt;- mean_list %&gt;% reduce(`+`) / m)</code></pre>
+<pre><code>## [1] 12.63861</code></pre>
+<div id="more-efficient-file-reading-by-using-vroom." class="section level3">
+<h3>More efficient file reading by using <code>vroom</code>.</h3>
+<p>See: <a href="https://vroom.r-lib.org/" class="uri">https://vroom.r-lib.org/</a></p>
+<pre class="r"><code>library(vroom)</code></pre>
+<pre class="r"><code>bench::mark(
+  read_csv(&quot;flights/1.csv&quot;),
+  vroom(&quot;flights/1.csv&quot;),
+  read_csv(&quot;flights/1.csv&quot;, col_types = cols()),
+  vroom(&quot;flights/1.csv&quot;, col_types = cols()),
+  read_csv(&quot;flights/1.csv&quot;, col_types = cols_only(dep_delay = col_double())),
+  vroom(&quot;flights/1.csv&quot;, col_types = cols(), col_select = c(dep_delay)),
+  check = FALSE
+)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   expression                                                                
+##   &lt;bch:expr&gt;                                                                
+## 1 read_csv(&quot;flights/1.csv&quot;)                                                 
+## 2 vroom(&quot;flights/1.csv&quot;)                                                    
+## 3 read_csv(&quot;flights/1.csv&quot;, col_types = cols())                             
+## 4 vroom(&quot;flights/1.csv&quot;, col_types = cols())                                
+## 5 read_csv(&quot;flights/1.csv&quot;, col_types = cols_only(dep_delay = col_double()))
+## 6 vroom(&quot;flights/1.csv&quot;, col_types = cols(), col_select = c(dep_delay))     
+## # … with 5 more variables: min &lt;bch:tm&gt;, median &lt;bch:tm&gt;, `itr/sec` &lt;dbl&gt;,
+## #   mem_alloc &lt;bch:byt&gt;, `gc/sec` &lt;dbl&gt;</code></pre>
+<pre class="r"><code>mean_list &lt;- file_names %&gt;% future_map(~{
+  df &lt;- vroom(., col_types = cols())
   mean(df$dep_delay, na.rm = TRUE)
 })
 
@@ -2117,6 +2150,7 @@ mean_list &lt;- file_names %&gt;% future_map(~{
 <ul>
 <li>R Programming for Data Science <a href="https://bookdown.org/rdpeng/rprogdatascience/parallel-computation.html" class="uri">https://bookdown.org/rdpeng/rprogdatascience/parallel-computation.html</a></li>
 </ul>
+</div>
 </div>
 </div>
 

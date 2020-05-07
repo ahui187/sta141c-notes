@@ -446,13 +446,16 @@ m <- 10
 groups <- sample(seq_len(m), nrow(flights), replace = TRUE)
 dir.create("flights/", showWarnings = FALSE)
 for (i in seq_len(m)) {
-  write_csv(filter(flights, groups == i), str_c("flights/", i, ".csv")) 
+  write_csv(filter(flights, groups == i), str_c("flights/", i, ".csv"))
 }
 ```
 
 ```{r}
 suppressWarnings(plan(multiprocess, workers = 4))
+```
 
+
+```{r}
 file_names <- file.path("flights", list.files("flights"))
 
 mean_list <- file_names %>% future_map(~{
@@ -462,6 +465,37 @@ mean_list <- file_names %>% future_map(~{
 
 (mean_dep_delay <- mean_list %>% reduce(`+`) / m)
 ```
+
+### More efficient file reading by using `vroom`.
+
+See: https://vroom.r-lib.org/
+
+```{r}
+library(vroom)
+```
+
+```{r, paged.print = FALSE, message = FALSE}
+bench::mark(
+  read_csv("flights/1.csv"),
+  vroom("flights/1.csv"),
+  read_csv("flights/1.csv", col_types = cols()),
+  vroom("flights/1.csv", col_types = cols()),
+  read_csv("flights/1.csv", col_types = cols_only(dep_delay = col_double())),
+  vroom("flights/1.csv", col_types = cols(), col_select = c(dep_delay)),
+  check = FALSE
+)
+```
+
+
+```{r}
+mean_list <- file_names %>% future_map(~{
+  df <- vroom(., col_types = cols())
+  mean(df$dep_delay, na.rm = TRUE)
+})
+
+(mean_dep_delay <- mean_list %>% reduce(`+`) / m)
+```
+
 
 
 Reference:
