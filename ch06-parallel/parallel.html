@@ -1607,10 +1607,10 @@ summary {
 <li><a href="#caution">Caution</a></li>
 <li><a href="#interact-directly-with-the-workers">Interact directly with the workers</a></li>
 </ul></li>
+<li><a href="#fork-cluster-vs-socket-cluster">Fork cluster vs socket cluster</a></li>
 <li><a href="#mclapply-from-parallel-unix-macos-only"><code>mclapply</code> from <code>parallel</code> (unix / macOS only)</a></li>
 <li><a href="#package-foreach">Package: <code>foreach</code></a></li>
 <li><a href="#package-furrr">Package <code>furrr</code></a></li>
-<li><a href="#fork-cluster">Fork cluster</a></li>
 <li><a href="#divide-and-conquer-a.k.a.-mapreduce">Divide and conquer a.k.a. mapreduce</a>
 <ul>
 <li><a href="#more-efficient-file-reading-by-using-vroom.">More efficient file reading by using <code>vroom</code>.</a></li>
@@ -1986,9 +1986,54 @@ clusterEvalQ(cl, {
 stopCluster(cl)</code></pre>
 </div>
 </div>
+<div id="fork-cluster-vs-socket-cluster" class="section level2">
+<h2>Fork cluster vs socket cluster</h2>
+<p>In the R <code>parallel</code> package, there are two implementations of paralllization, e.g. fork and socket.</p>
+<p>For the fork, each parallel thread is a “complete” duplication of the master process with the shared environment, including objects or variables defined prior to the kickoff of parallel threads. Therefore, it runs fast. However, the major limitation is that the fork doesn’t work on the Windows system. (Also, it is not very stable in RStudio.)</p>
+<pre class="r"><code>cl &lt;- makeForkCluster(4)</code></pre>
+<p>On the other hand, the socket works on all operating systems. Each thread runs separately without sharing objects or variables, which can only be passed from the master process explicitly. As a result, it runs slower due to the communication overhead.</p>
+<pre class="r"><code>cl &lt;- makeCluster(4)</code></pre>
+<ul>
+<li>thread - need RcppParallel</li>
+<li>socket</li>
+<li>fork (unix only)</li>
+</ul>
+<p>Ref: <a href="https://www.r-bloggers.com/parallel-r-socket-or-fork/" class="uri">https://www.r-bloggers.com/parallel-r-socket-or-fork/</a></p>
+</div>
 <div id="mclapply-from-parallel-unix-macos-only" class="section level2">
 <h2><code>mclapply</code> from <code>parallel</code> (unix / macOS only)</h2>
-<p>Remark: <code>mclapply</code> relies on forking, it means that it doesn’t work on Windows. We will discuss a cross platform approach.)</p>
+<p>Remark: <code>mclapply</code> relies on forking, it means that it doesn’t work on Windows.</p>
+<pre class="r"><code>m &lt;- matrix(rnorm(16), 4, 4)
+mclapply(
+  1:4,
+  function(i) sum(m[i, ])
+)</code></pre>
+<pre><code>## [[1]]
+## [1] -0.7172693
+## 
+## [[2]]
+## [1] 1.149908
+## 
+## [[3]]
+## [1] 2.687865
+## 
+## [[4]]
+## [1] 0.9521741</code></pre>
+<p>is more or less equivalent to</p>
+<pre class="r"><code>cl &lt;- makeForkCluster(2)
+parLapply(cl, 1:4, function(i) sum(m[i, ]))</code></pre>
+<pre><code>## [[1]]
+## [1] -0.7172693
+## 
+## [[2]]
+## [1] 1.149908
+## 
+## [[3]]
+## [1] 2.687865
+## 
+## [[4]]
+## [1] 0.9521741</code></pre>
+<pre class="r"><code>stopCluster(cl)</code></pre>
 <pre class="r"><code># in default, `mclapply` uses 2 cores
 system.time({
   mclapply(
@@ -1997,7 +2042,7 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.004   0.006   4.015</code></pre>
+##   0.001   0.003   4.009</code></pre>
 <pre class="r"><code>system.time({
   mclapply(
     c(3, 3, 1, 1, 1, 1, 1, 1),
@@ -2007,49 +2052,84 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.013   0.022   3.021</code></pre>
+##   0.021   0.048   3.038</code></pre>
 </div>
 <div id="package-foreach" class="section level2">
 <h2>Package: <code>foreach</code></h2>
 <p>As we have seen a bit earlier, we might need to use <code>clusterExport</code> to export certain gloabl variables. It would be a bit cumbersome. To reduce the extra steps, we could consider <code>foreach</code> and <code>doParallel</code>. They will send all the globals to the workers before running the tasks. (However, I don’t personally recommand <code>foreach</code> though it is (was!?) popular, I perfer <code>furrr</code> in the below)</p>
-<pre class="r"><code>library(foreach)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;foreach&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:purrr&#39;:
-## 
-##     accumulate, when</code></pre>
-<pre class="r"><code>library(doParallel)</code></pre>
-<pre><code>## Loading required package: iterators</code></pre>
+<pre class="r"><code>library(foreach)
+library(doParallel)</code></pre>
 <pre class="r"><code>cl &lt;- makeCluster(4)
 registerDoParallel(cl)
-m &lt;- matrix(rnorm(9), 3, 3)
+m &lt;- matrix(rnorm(16), 4, 4)
 # matrix m is sent to the workers implictly
 # in fact, all globals are sent to the workers in default
 foreach(i = seq_len(nrow(m)), .combine = c) %dopar% {
   sum(m[i, ])
 }</code></pre>
-<pre><code>## [1] -0.02905105 -1.36595099  2.58692045</code></pre>
+<pre><code>## [1] -2.3331494 -2.6174705  0.9396027 -1.3433810</code></pre>
 <pre class="r"><code>stopCluster(cl)</code></pre>
-<p>However, it is not quite “functional” as <code>mclapply</code>.</p>
+<p>is almost equivalent to</p>
+<pre class="r"><code>cl &lt;- makeCluster(4)
+clusterExport(cl, ls(envir = .GlobalEnv))
+parLapply(cl, seq_len(nrow(m)), function(i) {
+  sum(m[i, ])
+})</code></pre>
+<pre><code>## [[1]]
+## [1] -2.333149
+## 
+## [[2]]
+## [1] -2.61747
+## 
+## [[3]]
+## [1] 0.9396027
+## 
+## [[4]]
+## [1] -1.343381</code></pre>
+<pre class="r"><code>stopCluster(cl)</code></pre>
+<p>However, it is not quite “functional” as <code>mclapply</code>. <code>foreach</code> sends all the glbal variabels to the workers (which may be not optimal)</p>
 </div>
 <div id="package-furrr" class="section level2">
 <h2>Package <code>furrr</code></h2>
-<p><code>furrr</code> provides functions which are very similar to those in <code>purrr</code>. One nice thing about <code>furrr</code> is that it doesn’t send absolutely every global variables to the workers as <code>foreach</code> and <code>mclapply</code>. It does lexical analysis to deduce what objects are needed and only transfer them to the workers. It also loads libraries automatically in the workers.</p>
+<p><code>furrr</code> provides functions which are very similar to those in <code>purrr</code>. One nice thing about <code>furrr</code> is that it doesn’t send absolutely all global variables to the workers as <code>foreach</code> and <code>mclapply</code>. It does lexical analysis to deduce what objects are needed and only transfer them to the workers. It also loads libraries automatically in the workers.</p>
 <pre class="r"><code>library(furrr)</code></pre>
-<pre><code>## Loading required package: future</code></pre>
+<pre class="r"><code>m &lt;- matrix(rnorm(16), 4, 4)
+
+# purrr
+seq_len(nrow(m)) %&gt;% 
+  map(~ sum(m[., ]))</code></pre>
+<pre><code>## [[1]]
+## [1] 1.962298
+## 
+## [[2]]
+## [1] -0.5148041
+## 
+## [[3]]
+## [1] -1.152663
+## 
+## [[4]]
+## [1] 2.01047</code></pre>
 <pre class="r"><code># to use 4 workers, `plan(multiprocess)` will use all the avaliable workers
 suppressWarnings(plan(multiprocess, workers = 4))
-system.time({
-  future_map(
-    c(2, 2, 2, 2),
-    ~ Sys.sleep(.)
-  )
-})</code></pre>
-<pre><code>##    user  system elapsed 
-##   0.084   0.073   2.104</code></pre>
+
+# furrr
+seq_len(nrow(m)) %&gt;% 
+  future_map(~ sum(m[., ]))</code></pre>
+<pre><code>## [[1]]
+## [1] 1.962298
+## 
+## [[2]]
+## [1] -0.5148041
+## 
+## [[3]]
+## [1] -1.152663
+## 
+## [[4]]
+## [1] 2.01047</code></pre>
 <p><code>future_map</code> has a family of type speific functions. For example,</p>
-<pre class="r"><code>future_map_dbl(list(1:10, 11:20, 21:30, 31:41), ~ sum(.))</code></pre>
-<pre><code>## [1]  55 155 255 396</code></pre>
+<pre class="r"><code>seq_len(nrow(m)) %&gt;% 
+  future_map_dbl(~ sum(m[., ]))</code></pre>
+<pre><code>## [1]  1.9622983 -0.5148041 -1.1526628  2.0104699</code></pre>
 <p>load balanacing in <code>future_map</code></p>
 <pre class="r"><code># without load balanacing
 system.time({
@@ -2059,7 +2139,7 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.065   0.055   6.028</code></pre>
+##   0.177   0.007   6.071</code></pre>
 <pre class="r"><code># with load balanacing
 system.time({
   future_map(
@@ -2069,20 +2149,13 @@ system.time({
   )
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.142   0.140   3.985</code></pre>
-</div>
-<div id="fork-cluster" class="section level2">
-<h2>Fork cluster</h2>
-<p>In the R <code>parallel</code> package, there are two implementations of paralllization, e.g. fork and socket.</p>
-<p>For the fork, each parallel thread is a complete duplication of the master process with the shared environment, including objects or variables defined prior to the kickoff of parallel threads. Therefore, it runs fast. However, the major limitation is that the fork doesn’t work on the Windows system. (Also, it is not very stable in RStudio.)</p>
-<p>On the other hand, the socket works on all operating systems. Each thread runs separately without sharing objects or variables, which can only be passed from the master process explicitly. As a result, it runs slower due to the communication overhead.</p>
-<p>Ref: <a href="https://www.r-bloggers.com/parallel-r-socket-or-fork/" class="uri">https://www.r-bloggers.com/parallel-r-socket-or-fork/</a></p>
+##   0.225   0.008   4.087</code></pre>
 </div>
 <div id="divide-and-conquer-a.k.a.-mapreduce" class="section level2">
 <h2>Divide and conquer a.k.a. mapreduce</h2>
 <p>Divide and conquer allows a single task operation to be executed parallelly.</p>
-<div id="htmlwidget-f25ab85bf888dc624719" style="width:672px;height:200px;" class="grViz html-widget"></div>
-<script type="application/json" data-for="htmlwidget-f25ab85bf888dc624719">{"x":{"diagram":"digraph mapreduce {\n  rankdir=LR;\n  node [shape = rectangle]\n  data [label = \"data\"]\n  node1 [label = \"subsample 1\"]\n  node2 [label = \"subsample 2\"]\n  nodek [label = \"subsample k\"]\n  stat1 [label = \"statistic 1\"]\n  stat2 [label = \"statistic 2\"]\n  statk [label = \"statistic k\"]\n\n  data -> node2 [label = \"map\"]\n  data -> {node1, nodek}\n  node2 -> nodek [style = dotted, arrowhead = none]\n  {rank = same; node1; node2; nodek;}\n  node1 -> stat1\n  node2 -> stat2\n  nodek -> statk\n  stat2 -> statk [style = dotted, arrowhead = none]\n  {rank = same; stat1; stat2; statk;}\n  {stat1, statk} -> result\n  stat2 -> result [label = \"reduce\"]\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-44f57ef2983315589fed" style="width:672px;height:200px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-44f57ef2983315589fed">{"x":{"diagram":"digraph mapreduce {\n  rankdir=LR;\n  node [shape = rectangle]\n  data [label = \"data\"]\n  node1 [label = \"subsample 1\"]\n  node2 [label = \"subsample 2\"]\n  nodek [label = \"subsample k\"]\n  stat1 [label = \"statistic 1\"]\n  stat2 [label = \"statistic 2\"]\n  statk [label = \"statistic k\"]\n\n  data -> node2 [label = \"map\"]\n  data -> {node1, nodek}\n  node2 -> nodek [style = dotted, arrowhead = none]\n  {rank = same; node1; node2; nodek;}\n  node1 -> stat1\n  node2 -> stat2\n  nodek -> statk\n  stat2 -> statk [style = dotted, arrowhead = none]\n  {rank = same; stat1; stat2; statk;}\n  {stat1, statk} -> result\n  stat2 -> result [label = \"reduce\"]\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 <p>In assignment 2 how we could use map and reduce to compute the mean. However, we didn’t really do the calculations parallelly.</p>
 <p>There are two ways to get data to the workers in cluster:</p>
 <ul>
@@ -2107,6 +2180,7 @@ for (i in seq_len(m)) {
 }</code></pre>
 <pre class="r"><code>suppressWarnings(plan(multiprocess, workers = 4))</code></pre>
 <pre class="r"><code>file_names &lt;- file.path(&quot;flights&quot;, list.files(&quot;flights&quot;))
+m &lt;- length(file_names)
 
 mean_list &lt;- file_names %&gt;% future_map(~{
   df &lt;- read_csv(., col_types = cols())
@@ -2120,6 +2194,7 @@ mean_list &lt;- file_names %&gt;% future_map(~{
 <p>See: <a href="https://vroom.r-lib.org/" class="uri">https://vroom.r-lib.org/</a></p>
 <pre class="r"><code>library(vroom)</code></pre>
 <pre class="r"><code>bench::mark(
+  read.csv(&quot;flights/1.csv&quot;),
   read_csv(&quot;flights/1.csv&quot;),
   vroom(&quot;flights/1.csv&quot;),
   read_csv(&quot;flights/1.csv&quot;, col_types = cols()),
@@ -2128,15 +2203,16 @@ mean_list &lt;- file_names %&gt;% future_map(~{
   vroom(&quot;flights/1.csv&quot;, col_types = cols(), col_select = c(dep_delay)),
   check = FALSE
 )</code></pre>
-<pre><code>## # A tibble: 6 x 6
+<pre><code>## # A tibble: 7 x 6
 ##   expression                                                                
 ##   &lt;bch:expr&gt;                                                                
-## 1 read_csv(&quot;flights/1.csv&quot;)                                                 
-## 2 vroom(&quot;flights/1.csv&quot;)                                                    
-## 3 read_csv(&quot;flights/1.csv&quot;, col_types = cols())                             
-## 4 vroom(&quot;flights/1.csv&quot;, col_types = cols())                                
-## 5 read_csv(&quot;flights/1.csv&quot;, col_types = cols_only(dep_delay = col_double()))
-## 6 vroom(&quot;flights/1.csv&quot;, col_types = cols(), col_select = c(dep_delay))     
+## 1 read.csv(&quot;flights/1.csv&quot;)                                                 
+## 2 read_csv(&quot;flights/1.csv&quot;)                                                 
+## 3 vroom(&quot;flights/1.csv&quot;)                                                    
+## 4 read_csv(&quot;flights/1.csv&quot;, col_types = cols())                             
+## 5 vroom(&quot;flights/1.csv&quot;, col_types = cols())                                
+## 6 read_csv(&quot;flights/1.csv&quot;, col_types = cols_only(dep_delay = col_double()))
+## 7 vroom(&quot;flights/1.csv&quot;, col_types = cols(), col_select = c(dep_delay))     
 ## # … with 5 more variables: min &lt;bch:tm&gt;, median &lt;bch:tm&gt;, `itr/sec` &lt;dbl&gt;,
 ## #   mem_alloc &lt;bch:byt&gt;, `gc/sec` &lt;dbl&gt;</code></pre>
 <pre class="r"><code>mean_list &lt;- file_names %&gt;% future_map(~{
@@ -2146,6 +2222,25 @@ mean_list &lt;- file_names %&gt;% future_map(~{
 
 (mean_dep_delay &lt;- mean_list %&gt;% reduce(`+`) / m)</code></pre>
 <pre><code>## [1] 12.63861</code></pre>
+<pre class="r"><code>bench::mark(
+  read_csv = {
+    mean_list &lt;- file_names %&gt;% future_map(~{
+      df &lt;- read_csv(., col_types = cols())
+      mean(df$dep_delay, na.rm = TRUE)
+    })
+  },
+  vroom = {
+    mean_list &lt;- file_names %&gt;% future_map(~{
+      df &lt;- vroom(., col_types = cols())
+      mean(df$dep_delay, na.rm = TRUE)
+    })
+  }
+)</code></pre>
+<pre><code>## # A tibble: 2 x 6
+##   expression      min   median `itr/sec` mem_alloc `gc/sec`
+##   &lt;bch:expr&gt; &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
+## 1 read_csv      620ms    620ms      1.61    1.31MB     0   
+## 2 vroom         286ms    286ms      3.50    1.31MB     3.50</code></pre>
 <p>Reference:</p>
 <ul>
 <li>R Programming for Data Science <a href="https://bookdown.org/rdpeng/rprogdatascience/parallel-computation.html" class="uri">https://bookdown.org/rdpeng/rprogdatascience/parallel-computation.html</a></li>
