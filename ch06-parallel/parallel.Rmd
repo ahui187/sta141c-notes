@@ -306,30 +306,6 @@ stopCluster(cl)
 ```
 
 
-## Another pouplar package: `foreach`
-
-As we have seen a bit earlier, we might need to use `clusterExport` to export certain gloabl variables. It would be a bit cumbersome. To reduce the extra steps, we could consider `foreach` and `doParallel`. They will send all the globals to the workers before running the tasks. (However, I don't personally recommand `foreach` though it is (was!?) popular, I perfer `furrr` in the below)
-
-```{r}
-library(foreach)
-library(doParallel)
-```
-
-```{r}
-cl <- makeCluster(4)
-registerDoParallel(cl)
-m <- matrix(rnorm(9), 3, 3)
-# matrix m is sent to the workers implictly
-# in fact, all globals are sent to the workers in default
-foreach(i = seq_len(nrow(m)), .combine = c) %dopar% {
-  sum(m[i, ])
-}
-stopCluster(cl)
-```
-
-However, it is not quite "functional" as `map`, `lapply` and `parLapply`.
-
-
 ## `mclapply` from `parallel` (unix / macOS only)
 
 Remark: `mclapply` relies on forking, it means that it doesn't work on Windows. We will discuss a cross platform approach.)
@@ -353,6 +329,31 @@ system.time({
 })
 ```
 
+
+## Package: `foreach`
+
+As we have seen a bit earlier, we might need to use `clusterExport` to export certain gloabl variables. It would be a bit cumbersome. To reduce the extra steps, we could consider `foreach` and `doParallel`. They will send all the globals to the workers before running the tasks. (However, I don't personally recommand `foreach` though it is (was!?) popular, I perfer `furrr` in the below)
+
+```{r}
+library(foreach)
+library(doParallel)
+```
+
+```{r}
+cl <- makeCluster(4)
+registerDoParallel(cl)
+m <- matrix(rnorm(9), 3, 3)
+# matrix m is sent to the workers implictly
+# in fact, all globals are sent to the workers in default
+foreach(i = seq_len(nrow(m)), .combine = c) %dopar% {
+  sum(m[i, ])
+}
+stopCluster(cl)
+```
+
+However, it is not quite "functional" as `mclapply`.
+
+
 ## Package `furrr`
 
 `furrr` provides functions which are very similar to those in `purrr`.
@@ -362,9 +363,9 @@ One nice thing about `furrr` is that it doesn't send absolutely every global var
 library(furrr)
 ```
 
-```{r, warning = FALSE}
+```{r}
 # to use 4 workers, `plan(multiprocess)` will use all the avaliable workers
-plan(multiprocess, workers = 4)
+suppressWarnings(plan(multiprocess, workers = 4))
 system.time({
   future_map(
     c(2, 2, 2, 2),
@@ -399,6 +400,20 @@ system.time({
   )
 })
 ```
+
+
+
+## Fork cluster
+
+In the R `parallel` package, there are two implementations of paralllization, e.g. fork and socket.
+
+For the fork, each parallel thread is a complete duplication of the master process with the shared environment, including objects or variables defined prior to the kickoff of parallel threads. Therefore, it runs fast. However, the major limitation is that the fork doesn’t work on the Windows system.
+(Also, it is not very stable in RStudio.)
+
+On the other hand, the socket works on all operating systems. Each thread runs separately without sharing objects or variables, which can only be passed from the master process explicitly. As a result, it runs slower due to the communication overhead.
+
+
+Ref: https://www.r-bloggers.com/parallel-r-socket-or-fork/
 
 
 ## The honorable mention `multidplyr`
@@ -461,6 +476,34 @@ cluster %>%
 ```
 
 
+## Divide and conquer a.k.a. mapreduce
+
+Divide and conquer allows a single task operation to be executed parallelly.
+
+```{r, echo = FALSE}
+DiagrammeR::grViz("mapreduce.gv", height = 200)
+```
+
+In assignment 2 how we could use map and reduce to compute the mean. However, we didn't
+really do the calculations parallelly.
+
+```{r}
+# we first random split `flights` into 10 files
+library(nycflights13)
+set.seed(141)
+m <- 10
+groups <- sample(seq_len(m), nrow(flights), replace = TRUE)
+dir.create("flights/", showWarnings = FALSE)
+for (i in seq_len(m)) {
+  write_csv(filter(flights, groups == i), str_c("flights/", i, ".csv")) 
+}
+```
+
+```{r, message = FALSE}
+file_names <- file.path("flights", list.files("flights"))
+mean_list <- file_names %>% map(~ mean(read_csv(.)$dep_delay, na.rm = TRUE))
+(mean_dep_delay <- mean_list %>% reduce(`+`) / m)
+```
 
 
 Reference:
