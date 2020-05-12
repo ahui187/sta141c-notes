@@ -1,0 +1,150 @@
+---
+title: "Parallel"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+A Shell is a program that enables user to interact with the operating system. There are a few common implementaion of a shell.
+
+- bash
+  - the most common shell
+  - default in linux
+  - used to be the default shell on macOS
+- zsh
+  - the default shell in macOS 10.15 Catalina
+- powershell
+  - primarily used in windows
+  
+We will focus on `bash` (and `zsh` is `bash` compatible).
+
+
+There are a few program to launch the shell.
+
+- linux
+  - depends on the desktop environment, it could be gnome terminal, konsole etc..
+- macOS
+  - the default Terminal
+  - iTerm2
+- Windows
+  - Powershell
+  - Cmd (which runs DOS)
+  - Cmder
+- RStudio terminal
+- Rmarkdown (for bash script)
+
+
+## Commands to cover
+
+### File navigation
+
+- `ls` - list the current directory
+  
+  A useful alias for unix is
+  ```
+  alias ls='ls --color=auto -F'
+  ```
+  
+- `pwd` - show the current directory
+- cd  - change directory
+
+  - `cd ..` go to parent directory
+  - `cd -` go to the previous directory
+  - `cd ~` go to the home directory
+
+
+### File manipulation
+
+- `touch` - create an empty file
+- `mkdir` 
+  - create a direpcty
+  - `mkdir -p folder1/folder2/folder3`
+- `mv`: rename / move a file
+- `cp`: copy file
+- `rm`: rename a file or directory
+  - `rm file`
+  - `rm -r dir` 
+
+### Utility
+
+- `echo`: print something
+- `cat`: print the content of a file
+- `which`: check if a command exists
+
+
+## SSH
+
+> The SSH protocol (also referred to as Secure Shell) is a method for secure remote login from one computer to another.
+
+To use ssh, we need to the program `ssh`. 
+
+- Windows
+  - If you have Windows 10 the program should be included in default.
+    The built-in ssh program may raise the error: `ssh_askpass: posix_spawn: No such file or directory`.
+    One way to fix it is to unset the `DISPLAY` variable: 
+    `unset DISPLAY` on `git-bash` or `$Env:DISPLAY=""` on `powershell`.
+  - or you could use the ssh program form git for windows
+- Unix (macOS/Linux)
+  - it is included
+
+
+### Login to your peloton account
+
+```
+ssh sta141c-NUMBER@peloton.cse.ucdavis.edu
+```
+
+If you have a Windows machine and see an error such as 
+
+You will need to copy and paste password everytime you login.
+
+
+> Unfortunately, the peloton accounts are not yet ready. You could login to the following server meanwhile.
+```
+ssh YOURUCDLOGIN@34.71.255.20
+```
+The password is your student id.
+
+  
+### File editing over ssh
+
+
+Editing a file over SSH is not an easy task. 
+
+- use a text editor in the system
+- edit it locally and upload it to the server
+  - either use `scp` functions 
+  - or a software, for example "Cyber Duck".
+
+
+### `scp` function to copy files from to to server
+
+To copy a local file `file.txt` to remote `~/foo/file.txt`
+```
+scp file.txt sta141c-98@peloton.cse.ucdavis.edu:~/foo/
+```
+
+To copy a local directory to remote `~/foo/local_directory`
+```
+scp -r local_directory sta141c-98@peloton.cse.ucdavis.edu:~/foo/
+```
+
+To copy a local file `file.txt` from remote `~/foo/file.txt`
+```
+scp sta141c-98@peloton.cse.ucdavis.edu:~/foo/file.txt ./
+```
+
+To copy a directory from remote `~/foo/`
+```
+scp -r sta141c-98@peloton.cse.ucdavis.edu:~/foo/ ./
+```
+
+
+
+# Reference
+
+- Episode 1 to 3 of http://swcarpentry.github.io/shell-novice/
