@@ -392,9 +392,11 @@ summary {
 <li><a href="#file-editing-over-ssh">File editing over ssh</a></li>
 <li><a href="#scp-function-to-copy-files-from-to-to-server"><code>scp</code> function to copy files from to to server</a></li>
 </ul></li>
-<li><a href="#our-cluster">Our cluster</a></li>
+<li><a href="#our-cluster">Our cluster</a>
+<ul>
 <li><a href="#batch-submission">Batch submission</a></li>
 <li><a href="#array-job">Array job</a></li>
+</ul></li>
 <li><a href="#create-your-own-server-via-google-cloud-computer-engine">Create your own server via Google Cloud Computer Engine</a></li>
 <li><a href="#reference">Reference</a></li>
 </ul>
@@ -546,22 +548,22 @@ summary {
 <li>upload your R script to the server (either by a GUI software such as Cyber Duck/ WinScp or using <code>scp</code>)</li>
 </ul>
 <p>Important! - Do not run R in the head node - Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen 50 students. Use <code>sinfo</code> to query the current status of the cluster and <code>squeue</code> to check the running jobs in the cluster.</p>
-</div>
-<div id="batch-submission" class="section level2">
-<h2>Batch submission</h2>
+<div id="batch-submission" class="section level3">
+<h3>Batch submission</h3>
 <p>If you task takes a decent amount of time to complete, you may not want to run it directly via <code>srun</code> as any network connection issue may cause data lost. Instead, you could submit your job via <code>sbatch</code>.</p>
 <p>See the <code>batch</code> folder</p>
 <pre class="bash"><code># change directory to where job.sh is located
 sbatch job.sh</code></pre>
 <p>Use <code>squeue -u $USER</code> to show all your current jobs and use <code>scancel &lt;JOBID&gt;</code> to cancle your job.</p>
 </div>
-<div id="array-job" class="section level2">
-<h2>Array job</h2>
+<div id="array-job" class="section level3">
+<h3>Array job</h3>
 <p>If you have a lot of tasks to be execuated but they absolutely need no communications, you could consider using an array job.</p>
 <p>See the <code>array</code> folder</p>
 <p>You could also submit an array job via <code>sbatch</code>.</p>
 <pre class="bash"><code># change directory to where array.sh is located
 sbatch array.sh</code></pre>
+</div>
 </div>
 <div id="create-your-own-server-via-google-cloud-computer-engine" class="section level2">
 <h2>Create your own server via Google Cloud Computer Engine</h2>
