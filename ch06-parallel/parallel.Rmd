@@ -484,10 +484,10 @@ There are two ways to get data to the workers in cluster:
 - Partition a data set that already loaded in the main process.
   - It may not be possible to load the whole data set into a single process.
 - Load a different subset of the data in each worker.
-  - More memory efficient
+  - It is the most realistic situation and it is more memory efficient
 
 
-We are going to perform the second approach, but we need some preparation.
+In order to mimic the second situation, we need some preparation.
 ```{r}
 # we first random split `flights` into 10 files
 library(nycflights13)
@@ -499,6 +499,44 @@ for (i in seq_len(m)) {
   write_csv(filter(flights, groups == i), str_c("flights/", i, ".csv"))
 }
 ```
+
+We are going to perform the calculations via two approaches
+
+- The conventional approach by using `parLapply`
+- A newer approach by using `furrr`
+
+### The conventional approach
+
+```{r}
+file_names <- file.path("flights", list.files("flights"))
+m <- length(file_names)
+```
+
+```{r}
+cl <- makeCluster(4)
+# we will to manually load tidyverse in the workers
+invisible(clusterEvalQ(cl, {
+  library(tidyverse)
+  NULL
+}))
+```
+
+```{r}
+mean_list <- parLapply(cl, file_names, function(fname) {
+    df <- read_csv(fname, col_types = cols())
+    mean(df$dep_delay, na.rm = TRUE)
+})
+
+(mean_dep_delay <- mean_list %>% reduce(`+`) / m)
+```
+
+
+```{r}
+stopCluster(cl)
+```
+
+
+### By using `furrr`
 
 ```{r}
 suppressWarnings(plan(multiprocess, workers = 4))
