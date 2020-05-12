@@ -26,7 +26,7 @@ output:
 | 04-23, 04-28        | [Rcpp](ch04-rcpp/rcpp.Rmd)                      | [rcpp]
 | 04-30               | [R packages](ch05-packages/packages.Rmd)        | [packages]
 | 05-05, 05-07        | [Parallel](ch06-parallel/parallel.Rmd)          | [parallel]
-| 05-12               | [shell](ch07-mpi/shell.Rmd)          | [shell]
+| 05-12               | [shell](ch07-distributed/shell.Rmd)          | [shell]
 
 
 [introduction]: README.md
@@ -37,7 +37,7 @@ output:
 [rcpp]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch04-rcpp/rcpp.html
 [packages]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch05-packages/packages.html
 [parallel]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch06-parallel/parallel.html
-[shell]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-mpi/shell.html
+[shell]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-distributed/shell.html
 
 
 ## Links

@@ -1,0 +1,207 @@
+---
+title: "Parallel"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+A Shell is a program that enables user to interact with the operating system. There are a few common implementaion of a shell.
+
+- bash
+  - the most common shell
+  - default in linux
+  - used to be the default shell on macOS
+  - windows: git for windows
+- zsh
+  - the default shell in macOS 10.15 Catalina
+- powershell
+  - primarily used in windows
+  - but also avaliable on macOS/linux
+- there are many other shells such as fish, csh, tcsh etc....
+
+
+There are a few program to launch shells
+
+- linux
+  - depends on the desktop environment, it could be gnome terminal, konsole etc..
+- macOS
+  - the default Terminal
+  - iTerm2
+- Windows
+  - Microsoft Terminal (from Microsoft Store)
+  - Powershell
+  - Cmd (which runs DOS)
+  - Cmder
+- RStudio terminal
+  - You could change your default Shell in RStudio Options
+  - For macOS an linux users: it is bash in default.
+  - For Windows users, it may be git-bash or powershell or Command prompt. (choose `git-bash` if possible)
+
+
+We will focus on `bash` (and `zsh` is `bash` compatible).
+
+
+## SSH
+
+> The SSH protocol (also referred to as Secure Shell) is a method for secure remote login from one computer to another.
+
+To use ssh, we need to the program `ssh`. 
+
+- Windows
+  - If you have Windows 10 the program should be included in default.
+    The built-in ssh program may raise the error: `ssh_askpass: posix_spawn: No such file or directory`.
+    One way to fix it is to unset the `DISPLAY` variable: 
+    `unset DISPLAY` on `git-bash` or `$Env:DISPLAY=""` on `powershell`.
+  - or you could use the ssh program form git for windows
+- Unix (macOS/Linux)
+  - it is included
+
+
+### Login to your peloton account
+
+You should have received an email about your peloton account.
+
+```
+ssh sta141c-NUMBER@peloton.cse.ucdavis.edu
+```
+
+If you have a Windows machine and see an error such as 
+
+You will need to copy and paste password everytime you login.
+
+
+
+## Commands to cover
+
+### File navigation
+
+- `ls` - list the current directory
+  
+  A useful alias for unix is
+  ```
+  alias ls='ls --color=auto -F'
+  ```
+  
+- `pwd` - show the current directory
+- cd  - change directory
+
+  - `cd ..` go to parent directory
+  - `cd -` go to the previous directory
+  - `cd ~` go to the home directory
+
+
+### File manipulation
+
+- `touch` - create an empty file
+- `mkdir` 
+  - create a direpcty
+  - `mkdir -p folder1/folder2/folder3`
+- `mv`: rename / move a file
+- `cp`: copy file
+- `rm`: rename a file or directory
+  - `rm file`
+  - `rm -r dir` 
+
+### Utility
+
+- `echo`: print something
+- `cat`: print the content of a file
+- `which`: check if a command exists
+
+
+  
+### File editing over ssh
+
+
+Editing a file over SSH is not an easy task. 
+
+- use a text editor in the system
+- edit it locally and upload it to the server
+  - either use `scp` functions 
+  - or a software, for example "Cyber Duck".
+
+
+### `scp` function to copy files from to to server
+
+To copy a local file `file.txt` to remote `~/foo/file.txt`
+```
+scp file.txt sta141c-99@peloton.cse.ucdavis.edu:~/foo/
+```
+
+To copy a local directory to remote `~/foo/local_directory`
+```
+scp -r local_directory sta141c-99@peloton.cse.ucdavis.edu:~/foo/
+```
+
+To copy a local file `file.txt` from remote `~/foo/file.txt`
+```
+scp sta141c-99@peloton.cse.ucdavis.edu:~/foo/file.txt ./
+```
+
+To copy a directory from remote `~/foo/`
+```
+scp -r sta141c-99@peloton.cse.ucdavis.edu:~/foo/ ./
+```
+
+
+## Our cluster
+
+Our cluster uses SLURM to manage resources. There are two common resource management systems, PBS and SLURM. It's more difficult to adapt to the other system once you know how a system works.
+
+- first ssh into your account on peloton.cse.ucdavis.edu
+- upload your R script to the server (either by a GUI software such as Cyber Duck/ WinScp or using `scp`)
+
+
+Important! 
+- Do not run R in the head node
+- Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen 50 students. Use `sinfo` to query the current status of the cluster and `squeue` to check the running jobs in the cluster.
+
+
+## Batch submission
+
+If you task takes a decent amount of time to complete, you may not want to run it directly via `srun` as any network connection issue may cause data lost. Instead, you could submit your job via `sbatch`.
+
+
+See the `batch` folder
+
+```bash
+# change directory to where job.sh is located
+sbatch job.sh
+```
+
+Use `squeue -u $USER` to show all your current jobs and use `scancel <JOBID>` to cancle your job.
+
+
+## Array job
+
+If you have a lot of tasks to be execuated but they absolutely need no communications, you could consider using an array job.
+
+See the `array` folder
+
+You could also submit an array job via `sbatch`.
+
+```bash
+# change directory to where array.sh is located
+sbatch array.sh
+```
+
+
+## Create your own server via Google Cloud Computer Engine
+
+- On cavas, there are links to receive $50 education coupon.
+
+- We are going to create a computer engine (virtual machine) on Google cloud platform http://console.cloud.google.com/
+
+- We will need to generate a SSH key pair to login the server
+
+- There are a few way to generate SSH key pair
+
+
+
+# Reference
+
+- Episode 1 to 3 of http://swcarpentry.github.io/shell-novice/

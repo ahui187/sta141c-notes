@@ -380,18 +380,22 @@ summary {
 
 <div id="TOC">
 <ul>
+<li><a href="#ssh">SSH</a>
+<ul>
+<li><a href="#login-to-your-peloton-account">Login to your peloton account</a></li>
+</ul></li>
 <li><a href="#commands-to-cover">Commands to cover</a>
 <ul>
 <li><a href="#file-navigation">File navigation</a></li>
 <li><a href="#file-manipulation">File manipulation</a></li>
 <li><a href="#utility">Utility</a></li>
-</ul></li>
-<li><a href="#ssh">SSH</a>
-<ul>
-<li><a href="#login-to-your-peloton-account">Login to your peloton account</a></li>
 <li><a href="#file-editing-over-ssh">File editing over ssh</a></li>
 <li><a href="#scp-function-to-copy-files-from-to-to-server"><code>scp</code> function to copy files from to to server</a></li>
 </ul></li>
+<li><a href="#our-cluster">Our cluster</a></li>
+<li><a href="#batch-submission">Batch submission</a></li>
+<li><a href="#array-job">Array job</a></li>
+<li><a href="#create-your-own-server-via-google-cloud-computer-engine">Create your own server via Google Cloud Computer Engine</a></li>
 <li><a href="#reference">Reference</a></li>
 </ul>
 </div>
@@ -403,6 +407,7 @@ summary {
 <li>the most common shell</li>
 <li>default in linux</li>
 <li>used to be the default shell on macOS</li>
+<li>windows: git for windows</li>
 </ul></li>
 <li>zsh
 <ul>
@@ -411,10 +416,11 @@ summary {
 <li>powershell
 <ul>
 <li>primarily used in windows</li>
+<li>but also avaliable on macOS/linux</li>
 </ul></li>
+<li>there are many other shells such as fish, csh, tcsh etc….</li>
 </ul>
-<p>We will focus on <code>bash</code> (and <code>zsh</code> is <code>bash</code> compatible).</p>
-<p>There are a few program to launch the shell.</p>
+<p>There are a few program to launch shells</p>
 <ul>
 <li>linux
 <ul>
@@ -427,13 +433,44 @@ summary {
 </ul></li>
 <li>Windows
 <ul>
+<li>Microsoft Terminal (from Microsoft Store)</li>
 <li>Powershell</li>
 <li>Cmd (which runs DOS)</li>
 <li>Cmder</li>
 </ul></li>
-<li>RStudio terminal</li>
-<li>Rmarkdown (for bash script)</li>
+<li>RStudio terminal
+<ul>
+<li>You could change your default Shell in RStudio Options</li>
+<li>For macOS an linux users: it is bash in default.</li>
+<li>For Windows users, it may be git-bash or powershell or Command prompt. (choose <code>git-bash</code> if possible)</li>
+</ul></li>
 </ul>
+<p>We will focus on <code>bash</code> (and <code>zsh</code> is <code>bash</code> compatible).</p>
+<div id="ssh" class="section level2">
+<h2>SSH</h2>
+<blockquote>
+<p>The SSH protocol (also referred to as Secure Shell) is a method for secure remote login from one computer to another.</p>
+</blockquote>
+<p>To use ssh, we need to the program <code>ssh</code>.</p>
+<ul>
+<li>Windows
+<ul>
+<li>If you have Windows 10 the program should be included in default. The built-in ssh program may raise the error: <code>ssh_askpass: posix_spawn: No such file or directory</code>. One way to fix it is to unset the <code>DISPLAY</code> variable: <code>unset DISPLAY</code> on <code>git-bash</code> or <code>$Env:DISPLAY=&quot;&quot;</code> on <code>powershell</code>.</li>
+<li>or you could use the ssh program form git for windows</li>
+</ul></li>
+<li>Unix (macOS/Linux)
+<ul>
+<li>it is included</li>
+</ul></li>
+</ul>
+<div id="login-to-your-peloton-account" class="section level3">
+<h3>Login to your peloton account</h3>
+<p>You should have received an email about your peloton account.</p>
+<pre><code>ssh sta141c-NUMBER@peloton.cse.ucdavis.edu</code></pre>
+<p>If you have a Windows machine and see an error such as</p>
+<p>You will need to copy and paste password everytime you login.</p>
+</div>
+</div>
 <div id="commands-to-cover" class="section level2">
 <h2>Commands to cover</h2>
 <div id="file-navigation" class="section level3">
@@ -477,35 +514,6 @@ summary {
 <li><code>which</code>: check if a command exists</li>
 </ul>
 </div>
-</div>
-<div id="ssh" class="section level2">
-<h2>SSH</h2>
-<blockquote>
-<p>The SSH protocol (also referred to as Secure Shell) is a method for secure remote login from one computer to another.</p>
-</blockquote>
-<p>To use ssh, we need to the program <code>ssh</code>.</p>
-<ul>
-<li>Windows
-<ul>
-<li>If you have Windows 10 the program should be included in default. The built-in ssh program may raise the error: <code>ssh_askpass: posix_spawn: No such file or directory</code>. One way to fix it is to unset the <code>DISPLAY</code> variable: <code>unset DISPLAY</code> on <code>git-bash</code> or <code>$Env:DISPLAY=&quot;&quot;</code> on <code>powershell</code>.</li>
-<li>or you could use the ssh program form git for windows</li>
-</ul></li>
-<li>Unix (macOS/Linux)
-<ul>
-<li>it is included</li>
-</ul></li>
-</ul>
-<div id="login-to-your-peloton-account" class="section level3">
-<h3>Login to your peloton account</h3>
-<pre><code>ssh sta141c-NUMBER@peloton.cse.ucdavis.edu</code></pre>
-<p>If you have a Windows machine and see an error such as</p>
-<p>You will need to copy and paste password everytime you login.</p>
-<blockquote>
-<p>Unfortunately, the peloton accounts are not yet ready. You could login to the following server meanwhile.</p>
-</blockquote>
-<pre><code>ssh YOURUCDLOGIN@34.71.255.20</code></pre>
-<p>The password is your student id.</p>
-</div>
 <div id="file-editing-over-ssh" class="section level3">
 <h3>File editing over ssh</h3>
 <p>Editing a file over SSH is not an easy task.</p>
@@ -521,14 +529,48 @@ summary {
 <div id="scp-function-to-copy-files-from-to-to-server" class="section level3">
 <h3><code>scp</code> function to copy files from to to server</h3>
 <p>To copy a local file <code>file.txt</code> to remote <code>~/foo/file.txt</code></p>
-<pre><code>scp file.txt sta141c-98@peloton.cse.ucdavis.edu:~/foo/</code></pre>
+<pre><code>scp file.txt sta141c-99@peloton.cse.ucdavis.edu:~/foo/</code></pre>
 <p>To copy a local directory to remote <code>~/foo/local_directory</code></p>
-<pre><code>scp -r local_directory sta141c-98@peloton.cse.ucdavis.edu:~/foo/</code></pre>
+<pre><code>scp -r local_directory sta141c-99@peloton.cse.ucdavis.edu:~/foo/</code></pre>
 <p>To copy a local file <code>file.txt</code> from remote <code>~/foo/file.txt</code></p>
-<pre><code>scp sta141c-98@peloton.cse.ucdavis.edu:~/foo/file.txt ./</code></pre>
+<pre><code>scp sta141c-99@peloton.cse.ucdavis.edu:~/foo/file.txt ./</code></pre>
 <p>To copy a directory from remote <code>~/foo/</code></p>
-<pre><code>scp -r sta141c-98@peloton.cse.ucdavis.edu:~/foo/ ./</code></pre>
+<pre><code>scp -r sta141c-99@peloton.cse.ucdavis.edu:~/foo/ ./</code></pre>
 </div>
+</div>
+<div id="our-cluster" class="section level2">
+<h2>Our cluster</h2>
+<p>Our cluster uses SLURM to manage resources. There are two common resource management systems, PBS and SLURM. It’s more difficult to adapt to the other system once you know how a system works.</p>
+<ul>
+<li>first ssh into your account on peloton.cse.ucdavis.edu</li>
+<li>upload your R script to the server (either by a GUI software such as Cyber Duck/ WinScp or using <code>scp</code>)</li>
+</ul>
+<p>Important! - Do not run R in the head node - Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen 50 students. Use <code>sinfo</code> to query the current status of the cluster and <code>squeue</code> to check the running jobs in the cluster.</p>
+</div>
+<div id="batch-submission" class="section level2">
+<h2>Batch submission</h2>
+<p>If you task takes a decent amount of time to complete, you may not want to run it directly via <code>srun</code> as any network connection issue may cause data lost. Instead, you could submit your job via <code>sbatch</code>.</p>
+<p>See the <code>batch</code> folder</p>
+<pre class="bash"><code># change directory to where job.sh is located
+sbatch job.sh</code></pre>
+<p>Use <code>squeue -u $USER</code> to show all your current jobs and use <code>scancel &lt;JOBID&gt;</code> to cancle your job.</p>
+</div>
+<div id="array-job" class="section level2">
+<h2>Array job</h2>
+<p>If you have a lot of tasks to be execuated but they absolutely need no communications, you could consider using an array job.</p>
+<p>See the <code>array</code> folder</p>
+<p>You could also submit an array job via <code>sbatch</code>.</p>
+<pre class="bash"><code># change directory to where array.sh is located
+sbatch array.sh</code></pre>
+</div>
+<div id="create-your-own-server-via-google-cloud-computer-engine" class="section level2">
+<h2>Create your own server via Google Cloud Computer Engine</h2>
+<ul>
+<li><p>On cavas, there are links to receive $50 education coupon.</p></li>
+<li><p>We are going to create a computer engine (virtual machine) on Google cloud platform <a href="http://console.cloud.google.com/" class="uri">http://console.cloud.google.com/</a></p></li>
+<li><p>We will need to generate a SSH key pair to login the server</p></li>
+<li><p>There are a few way to generate SSH key pair</p></li>
+</ul>
 </div>
 <div id="reference" class="section level1">
 <h1>Reference</h1>
