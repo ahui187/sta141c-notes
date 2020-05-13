@@ -87,7 +87,7 @@ You will need to copy and paste password everytime you login.
   ```
   
 - `pwd` - show the current directory
-- cd  - change directory
+- `cd`  - change directory
 
   - `cd ..` go to parent directory
   - `cd -` go to the previous directory
@@ -111,7 +111,7 @@ You will need to copy and paste password everytime you login.
 - `echo`: print something
 - `cat`: print the content of a file
 - `which`: check if a command exists
-
+- `export:`: see all the environmental variables
 
   
 ### File editing over ssh
@@ -119,9 +119,9 @@ You will need to copy and paste password everytime you login.
 
 Editing a file over SSH is not an easy task. 
 
-- use a text editor in the system
+- use a text editor in the system (vim, emacs, nano)
 - edit it locally and upload it to the server
-  - either use `scp` functions 
+  - either use `scp` command 
   - or a software, for example "Cyber Duck".
 
 
@@ -150,10 +150,10 @@ scp -r sta141c-99@peloton.cse.ucdavis.edu:~/foo/ ./
 
 ## Our cluster
 
-Our cluster uses SLURM to manage resources. There are two common resource management systems, PBS and SLURM. It's more difficult to adapt to the other system once you know how a system works.
+Our cluster uses SLURM to manage resources. There are two common resource management systems, PBS and SLURM. It's not difficult to adapt to the other system once you know how a system works.
 
 - first ssh into your account on peloton.cse.ucdavis.edu
-- upload your R script to the server (either by a GUI software such as Cyber Duck/ WinScp or using `scp`)
+- upload your R script to the server (either by a GUI software such as Cyber Duck or using `scp`)
 
 
 Important! 

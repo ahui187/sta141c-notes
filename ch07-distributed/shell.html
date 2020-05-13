@@ -482,7 +482,7 @@ summary {
 <p>A useful alias for unix is</p>
 <pre><code>alias ls=&#39;ls --color=auto -F&#39;</code></pre></li>
 <li><p><code>pwd</code> - show the current directory</p></li>
-<li><p>cd - change directory</p>
+<li><p><code>cd</code> - change directory</p>
 <ul>
 <li><code>cd ..</code> go to parent directory</li>
 <li><code>cd -</code> go to the previous directory</li>
@@ -514,16 +514,17 @@ summary {
 <li><code>echo</code>: print something</li>
 <li><code>cat</code>: print the content of a file</li>
 <li><code>which</code>: check if a command exists</li>
+<li><code>export:</code>: see all the environmental variables</li>
 </ul>
 </div>
 <div id="file-editing-over-ssh" class="section level3">
 <h3>File editing over ssh</h3>
 <p>Editing a file over SSH is not an easy task.</p>
 <ul>
-<li>use a text editor in the system</li>
+<li>use a text editor in the system (vim, emacs, nano)</li>
 <li>edit it locally and upload it to the server
 <ul>
-<li>either use <code>scp</code> functions</li>
+<li>either use <code>scp</code> command</li>
 <li>or a software, for example “Cyber Duck”.</li>
 </ul></li>
 </ul>
@@ -542,10 +543,10 @@ summary {
 </div>
 <div id="our-cluster" class="section level2">
 <h2>Our cluster</h2>
-<p>Our cluster uses SLURM to manage resources. There are two common resource management systems, PBS and SLURM. It’s more difficult to adapt to the other system once you know how a system works.</p>
+<p>Our cluster uses SLURM to manage resources. There are two common resource management systems, PBS and SLURM. It’s not difficult to adapt to the other system once you know how a system works.</p>
 <ul>
 <li>first ssh into your account on peloton.cse.ucdavis.edu</li>
-<li>upload your R script to the server (either by a GUI software such as Cyber Duck/ WinScp or using <code>scp</code>)</li>
+<li>upload your R script to the server (either by a GUI software such as Cyber Duck or using <code>scp</code>)</li>
 </ul>
 <p>Important! - Do not run R in the head node - Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen 50 students. Use <code>sinfo</code> to query the current status of the cluster and <code>squeue</code> to check the running jobs in the cluster.</p>
 <div id="batch-submission" class="section level3">
