@@ -394,7 +394,7 @@ summary {
 </ul></li>
 <li><a href="#our-cluster">Our cluster</a>
 <ul>
-<li><a href="#batch-submission">Batch submission</a></li>
+<li><a href="#job-submission">Job submission</a></li>
 <li><a href="#array-job">Array job</a></li>
 </ul></li>
 <li><a href="#reference">Reference</a></li>
@@ -548,17 +548,21 @@ summary {
 <li>upload your R script to the server (either by a GUI software such as Cyber Duck or using <code>scp</code>)</li>
 </ul>
 <p>Important! - Do not run R in the head node - Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen students. Use <code>sinfo</code> to query the current status of the cluster and <code>squeue</code> to check the running jobs in the cluster.</p>
-<div id="batch-submission" class="section level3">
-<h3>Batch submission</h3>
-<p>If you task takes a decent amount of time to complete, you may not want to run it directly via <code>srun</code> as any network connection issue may cause data lost. Instead, you could submit your job via <code>sbatch</code>.</p>
-<p>See the <code>batch</code> folder</p>
+<div id="job-submission" class="section level3">
+<h3>Job submission</h3>
+<p>To submit a job to the server you will need to have</p>
+<ol style="list-style-type: decimal">
+<li>the R script</li>
+<li>a bash script which instructs SLURM to schedule the job</li>
+</ol>
+<p>See the <code>batch</code> folder. There is an R script which calculates <code>pi</code>. (Please ignore the R code for now).</p>
 <pre class="bash"><code># change directory to where job.sh is located
 sbatch job.sh</code></pre>
-<p>Use <code>squeue -u $USER</code> to show all your current jobs and use <code>scancel &lt;JOBID&gt;</code> to cancle your job.</p>
+<p>Use <code>squeue -u $USER</code> to show all your current jobs and use <code>scancel &lt;JOBID&gt;</code> to cancel your job.</p>
 </div>
 <div id="array-job" class="section level3">
 <h3>Array job</h3>
-<p>If you have a lot of tasks to be execuated but they absolutely need no communications, you could consider using an array job.</p>
+<p>If you have a lot of identical tasks to be run, you could consider using an array job.</p>
 <p>See the <code>array</code> folder</p>
 <p>You could also submit an array job via <code>sbatch</code>.</p>
 <pre class="bash"><code># change directory to where array.sh is located

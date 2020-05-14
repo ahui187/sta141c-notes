@@ -161,24 +161,26 @@ Important!
 - Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen students. Use `sinfo` to query the current status of the cluster and `squeue` to check the running jobs in the cluster.
 
 
-### Batch submission
+### Job submission
 
-If you task takes a decent amount of time to complete, you may not want to run it directly via `srun` as any network connection issue may cause data lost. Instead, you could submit your job via `sbatch`.
+To submit a job to the server you will need to have
 
+1. the R script
+1. a bash script which instructs SLURM to schedule the job
 
-See the `batch` folder
+See the `batch` folder. There is an R script which calculates `pi`. (Please ignore the R code for now).
 
 ```bash
 # change directory to where job.sh is located
 sbatch job.sh
 ```
 
-Use `squeue -u $USER` to show all your current jobs and use `scancel <JOBID>` to cancle your job.
+Use `squeue -u $USER` to show all your current jobs and use `scancel <JOBID>` to cancel your job.
 
 
 ### Array job
 
-If you have a lot of tasks to be execuated but they absolutely need no communications, you could consider using an array job.
+If you have a lot of identical tasks to be run, you could consider using an array job.
 
 See the `array` folder
 
