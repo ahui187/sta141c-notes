@@ -6,7 +6,6 @@ init()
 .comm.size <- comm.size()
 .comm.rank <- comm.rank()
 
-x
 m <- runif(10000, -1, 1)
 n <- runif(10000, -1, 1)
 
