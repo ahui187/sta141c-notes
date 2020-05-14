@@ -1,0 +1,101 @@
+---
+title: "Distributed Computation via MPI"
+output: 
+  html_document: 
+    toc: yes
+---
+
+There are two common parallelization models in parallel programming
+
+- Multiple programs, multiple data streams (MPMD) aka Master / Worker strategy (like what we have seen in `parallel`'s `parLapply`)
+
+- Single Program Multiple Data (SPMD)
+
+> SPMD (single program, multiple data) is a technique employed to achieve parallelism. Tasks are split up and run simultaneously on multiple processors with different input in order to obtain results faster. 
+
+
+Advantages of SPMD over Master/Worker
+- It is very close to the serial code. i.e. SPMD is easy to modify from serial.
+- It is much shorter than the original Master/Worker version. i.e. SPMD is traceable for debugging.
+- It makes the master as one of workers. i.e. SPMD fully utilizes resources.
+- It is easy to automatically process large numbers of independent jobs. i.e. SPMD can parallelize by jobs.
+
+
+## MPI
+
+MPI (Message Passing Interface) is one of the most standard parallel computing architectures. In R, there are two MPI packages `Rmpi` and `pbdMPI`.
+
+- `Rmpi` has been here for a long time, so it is more popular to `Rmpi` given its age. 
+  However it is not actively maintained now which means that `Rmpi` is not working probably with new versions of MPI (for example, >= openmpi 2.0).
+  - `Rmpi` could simulate master/worker mode but there is a bug in current version of `Rmpi` with makes `master/worker` mode fails in our cluster.
+
+- `pbdMPI` is a late comer (which means that it is actively maintained) and it also claims that it's faster than `Rmpi`
+
+
+In python, there is `mpi4py`. The usage of it is very similar to `pbdMPI`.
+
+
+## SPMD
+
+The general process in SPMD programs goes something like this:
+
+- initialize communicators
+- have each process read in its portion of the data
+- perform computations
+- communicate results
+- shut down the communicators
+
+
+## Demo
+
+There is a folder called `demo`. You could upload the whole directory by `scp` or `Cyberduck`.
+
+An alternatively is to run the following line in the server.
+```
+svn export https://github.com/ucdavis-sta141c-sq-2020/sta141c-notes/branches/master/ch07-distributed/demo/
+```
+
+## Basic Communicator Wrangling
+
+Managing a Communicator: Create and destroy communicators
+- `init()` Initialize communicator
+- `finalize()` shut down communicator(s)
+Rank query: Determine the processor’s position in the communicator
+- `comm.rank()` "who am I?""
+- `comm.size()` "how many of us are there?""
+- Print: printing with control over which processor prints.
+- `comm.print(x, ...)`
+- `comm.cat(x, ...)`
+
+
+To run the script `01-pbdmpi.R`
+
+```bash
+# make site packages such as pbdMPI available
+module load R
+# use 3 cores and 1 minute limit
+# high2 is a partition reserved for our class
+srun -p high2 -n 3 -t 1 Rscript 01-pbdmpi.R
+# use 3 cores on 2 nodes and 1 minute limit
+srun -p high2 -N 2 -n 3 -t 1 Rscript 01-pbdmpi.R
+```
+
+You could press `ctrl+c` anytime to interrupt the job.
+
+
+## Communication functions
+
+- `bcast` - A Rank Broadcasts an Object to Every Rank
+- `scatter` - A Rank Scatter Objects to Every Rank
+- `gather`/`allgather` - A Rank / All Ranks Gather(s) Objects from Every Rank
+- `reduce`/`allreduce` - A Rank / All Ranks Receive(s) a Reduction of Objects from Every Rank
+- `send`/`recv` - A Rank Sends / Receives (blockingly) an Object to / from the Other Rank
+- `isend` - A Rank Sends (non-blockingly) an Object to the Other Rank
+
+
+## Parallel Lapply Functions
+
+- `pbdLapply` - analogue of `lapply()`
+- `pbdSapply` - analogue of `sapply()`
+
+There are three modes: `mw`, `spmd` and `dist`.

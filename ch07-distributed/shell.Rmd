@@ -125,7 +125,7 @@ Editing a file over SSH is not an easy task.
   - or a software, for example "Cyber Duck".
 
 
-### `scp` function to copy files from to to server
+### `scp` command to copy files from and to server
 
 To copy a local file `file.txt` to remote `~/foo/file.txt`
 ```
@@ -158,7 +158,7 @@ Our cluster uses SLURM to manage resources. There are two common resource manage
 
 Important! 
 - Do not run R in the head node
-- Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen 50 students. Use `sinfo` to query the current status of the cluster and `squeue` to check the running jobs in the cluster.
+- Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen students. Use `sinfo` to query the current status of the cluster and `squeue` to check the running jobs in the cluster.
 
 
 ### Batch submission
@@ -188,18 +188,6 @@ You could also submit an array job via `sbatch`.
 # change directory to where array.sh is located
 sbatch array.sh
 ```
-
-
-## Create your own server via Google Cloud Computer Engine
-
-- On cavas, there are links to receive $50 education coupon.
-
-- We are going to create a computer engine (virtual machine) on Google cloud platform http://console.cloud.google.com/
-
-- We will need to generate a SSH key pair to login the server
-
-- There are a few way to generate SSH key pair
-
 
 
 # Reference

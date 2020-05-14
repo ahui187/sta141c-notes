@@ -11,7 +11,7 @@
 
 
 
-<title>Parallel</title>
+<title>Distributed Computation via MPI</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -374,202 +374,90 @@ summary {
 
 
 
-<h1 class="title toc-ignore">Parallel</h1>
+<h1 class="title toc-ignore">Distributed Computation via MPI</h1>
 
 </div>
 
 <div id="TOC">
 <ul>
-<li><a href="#ssh">SSH</a>
-<ul>
-<li><a href="#login-to-your-peloton-account">Login to your peloton account</a></li>
-</ul></li>
-<li><a href="#commands-to-cover">Commands to cover</a>
-<ul>
-<li><a href="#file-navigation">File navigation</a></li>
-<li><a href="#file-manipulation">File manipulation</a></li>
-<li><a href="#utility">Utility</a></li>
-<li><a href="#file-editing-over-ssh">File editing over ssh</a></li>
-<li><a href="#scp-command-to-copy-files-from-and-to-server"><code>scp</code> command to copy files from and to server</a></li>
-</ul></li>
-<li><a href="#our-cluster">Our cluster</a>
-<ul>
-<li><a href="#batch-submission">Batch submission</a></li>
-<li><a href="#array-job">Array job</a></li>
-</ul></li>
-<li><a href="#reference">Reference</a></li>
+<li><a href="#mpi">MPI</a></li>
+<li><a href="#spmd">SPMD</a></li>
+<li><a href="#demo">Demo</a></li>
+<li><a href="#basic-communicator-wrangling">Basic Communicator Wrangling</a></li>
+<li><a href="#communication-functions">Communication functions</a></li>
+<li><a href="#parallel-lapply-functions">Parallel Lapply Functions</a></li>
 </ul>
 </div>
 
-<p>A Shell is a program that enables user to interact with the operating system. There are a few common implementaion of a shell.</p>
+<p>There are two common parallelization models in parallel programming</p>
 <ul>
-<li>bash
-<ul>
-<li>the most common shell</li>
-<li>default in linux</li>
-<li>used to be the default shell on macOS</li>
-<li>windows: git for windows</li>
-</ul></li>
-<li>zsh
-<ul>
-<li>the default shell in macOS 10.15 Catalina</li>
-</ul></li>
-<li>powershell
-<ul>
-<li>primarily used in windows</li>
-<li>but also avaliable on macOS/linux</li>
-</ul></li>
-<li>there are many other shells such as fish, csh, tcsh etc….</li>
+<li><p>Multiple programs, multiple data streams (MPMD) aka Master / Worker strategy (like what we have seen in <code>parallel</code>’s <code>parLapply</code>)</p></li>
+<li><p>Single Program Multiple Data (SPMD)</p></li>
 </ul>
-<p>There are a few program to launch shells</p>
-<ul>
-<li>linux
-<ul>
-<li>depends on the desktop environment, it could be gnome terminal, konsole etc..</li>
-</ul></li>
-<li>macOS
-<ul>
-<li>the default Terminal</li>
-<li>iTerm2</li>
-</ul></li>
-<li>Windows
-<ul>
-<li>Microsoft Terminal (from Microsoft Store)</li>
-<li>Powershell</li>
-<li>Cmd (which runs DOS)</li>
-<li>Cmder</li>
-</ul></li>
-<li>RStudio terminal
-<ul>
-<li>You could change your default Shell in RStudio Options</li>
-<li>For macOS an linux users: it is bash in default.</li>
-<li>For Windows users, it may be git-bash or powershell or Command prompt. (choose <code>git-bash</code> if possible)</li>
-</ul></li>
-</ul>
-<p>We will focus on <code>bash</code> (and <code>zsh</code> is <code>bash</code> compatible).</p>
-<div id="ssh" class="section level2">
-<h2>SSH</h2>
 <blockquote>
-<p>The SSH protocol (also referred to as Secure Shell) is a method for secure remote login from one computer to another.</p>
+<p>SPMD (single program, multiple data) is a technique employed to achieve parallelism. Tasks are split up and run simultaneously on multiple processors with different input in order to obtain results faster.</p>
 </blockquote>
-<p>To use ssh, we need to the program <code>ssh</code>.</p>
+<p>Advantages of SPMD over Master/Worker - It is very close to the serial code. i.e. SPMD is easy to modify from serial. - It is much shorter than the original Master/Worker version. i.e. SPMD is traceable for debugging. - It makes the master as one of workers. i.e. SPMD fully utilizes resources. - It is easy to automatically process large numbers of independent jobs. i.e. SPMD can parallelize by jobs.</p>
+<div id="mpi" class="section level2">
+<h2>MPI</h2>
+<p>MPI (Message Passing Interface) is one of the most standard parallel computing architectures. In R, there are two MPI packages <code>Rmpi</code> and <code>pbdMPI</code>.</p>
 <ul>
-<li>Windows
+<li><code>Rmpi</code> has been here for a long time, so it is more popular to <code>Rmpi</code> given its age. However it is not actively maintained now which means that <code>Rmpi</code> is not working probably with new versions of MPI (for example, &gt;= openmpi 2.0).
 <ul>
-<li>If you have Windows 10 the program should be included in default. The built-in ssh program may raise the error: <code>ssh_askpass: posix_spawn: No such file or directory</code>. One way to fix it is to unset the <code>DISPLAY</code> variable: <code>unset DISPLAY</code> on <code>git-bash</code> or <code>$Env:DISPLAY=&quot;&quot;</code> on <code>powershell</code>.</li>
-<li>or you could use the ssh program form git for windows</li>
+<li><code>Rmpi</code> could simulate master/worker mode but there is a bug in current version of <code>Rmpi</code> with makes <code>master/worker</code> mode fails in our cluster.</li>
 </ul></li>
-<li>Unix (macOS/Linux)
-<ul>
-<li>it is included</li>
-</ul></li>
+<li><code>pbdMPI</code> is a late comer (which means that it is actively maintained) and it also claims that it’s faster than <code>Rmpi</code></li>
 </ul>
-<div id="login-to-your-peloton-account" class="section level3">
-<h3>Login to your peloton account</h3>
-<p>You should have received an email about your peloton account.</p>
-<pre><code>ssh sta141c-NUMBER@peloton.cse.ucdavis.edu</code></pre>
-<p>If you have a Windows machine and see an error such as</p>
-<p>You will need to copy and paste password everytime you login.</p>
+<p>In python, there is <code>mpi4py</code>. The usage of it is very similar to <code>pbdMPI</code>.</p>
 </div>
-</div>
-<div id="commands-to-cover" class="section level2">
-<h2>Commands to cover</h2>
-<div id="file-navigation" class="section level3">
-<h3>File navigation</h3>
+<div id="spmd" class="section level2">
+<h2>SPMD</h2>
+<p>The general process in SPMD programs goes something like this:</p>
 <ul>
-<li><p><code>ls</code> - list the current directory</p>
-<p>A useful alias for unix is</p>
-<pre><code>alias ls=&#39;ls --color=auto -F&#39;</code></pre></li>
-<li><p><code>pwd</code> - show the current directory</p></li>
-<li><p><code>cd</code> - change directory</p>
-<ul>
-<li><code>cd ..</code> go to parent directory</li>
-<li><code>cd -</code> go to the previous directory</li>
-<li><code>cd ~</code> go to the home directory</li>
-</ul></li>
+<li>initialize communicators</li>
+<li>have each process read in its portion of the data</li>
+<li>perform computations</li>
+<li>communicate results</li>
+<li>shut down the communicators</li>
 </ul>
 </div>
-<div id="file-manipulation" class="section level3">
-<h3>File manipulation</h3>
+<div id="demo" class="section level2">
+<h2>Demo</h2>
+<p>There is a folder called <code>demo</code>. You could upload the whole directory by <code>scp</code> or <code>Cyberduck</code>.</p>
+<p>An alternatively is to run the following line in the server.</p>
+<pre><code>svn export https://github.com/ucdavis-sta141c-sq-2020/sta141c-notes/branches/master/ch07-distributed/demo/</code></pre>
+</div>
+<div id="basic-communicator-wrangling" class="section level2">
+<h2>Basic Communicator Wrangling</h2>
+<p>Managing a Communicator: Create and destroy communicators - <code>init()</code> Initialize communicator - <code>finalize()</code> shut down communicator(s) Rank query: Determine the processor’s position in the communicator - <code>comm.rank()</code> “who am I?”&quot; - <code>comm.size()</code> “how many of us are there?”&quot; - Print: printing with control over which processor prints. - <code>comm.print(x, ...)</code> - <code>comm.cat(x, ...)</code></p>
+<p>To run the script <code>01-pbdmpi.R</code></p>
+<pre class="bash"><code># make site packages such as pbdMPI available
+module load R
+# use 3 cores and 1 minute limit
+# high2 is a partition reserved for our class
+srun -p high2 -n 3 -t 1 Rscript 01-pbdmpi.R
+# use 3 cores on 2 nodes and 1 minute limit
+srun -p high2 -N 2 -n 3 -t 1 Rscript 01-pbdmpi.R</code></pre>
+<p>You could press <code>ctrl+c</code> anytime to interrupt the job.</p>
+</div>
+<div id="communication-functions" class="section level2">
+<h2>Communication functions</h2>
 <ul>
-<li><code>touch</code> - create an empty file</li>
-<li><code>mkdir</code>
-<ul>
-<li>create a direpcty</li>
-<li><code>mkdir -p folder1/folder2/folder3</code></li>
-</ul></li>
-<li><code>mv</code>: rename / move a file</li>
-<li><code>cp</code>: copy file</li>
-<li><code>rm</code>: rename a file or directory
-<ul>
-<li><code>rm file</code></li>
-<li><code>rm -r dir</code></li>
-</ul></li>
+<li><code>bcast</code> - A Rank Broadcasts an Object to Every Rank</li>
+<li><code>scatter</code> - A Rank Scatter Objects to Every Rank</li>
+<li><code>gather</code>/<code>allgather</code> - A Rank / All Ranks Gather(s) Objects from Every Rank</li>
+<li><code>reduce</code>/<code>allreduce</code> - A Rank / All Ranks Receive(s) a Reduction of Objects from Every Rank</li>
+<li><code>send</code>/<code>recv</code> - A Rank Sends / Receives (blockingly) an Object to / from the Other Rank</li>
+<li><code>isend</code> - A Rank Sends (non-blockingly) an Object to the Other Rank</li>
 </ul>
 </div>
-<div id="utility" class="section level3">
-<h3>Utility</h3>
+<div id="parallel-lapply-functions" class="section level2">
+<h2>Parallel Lapply Functions</h2>
 <ul>
-<li><code>echo</code>: print something</li>
-<li><code>cat</code>: print the content of a file</li>
-<li><code>which</code>: check if a command exists</li>
-<li><code>export:</code>: see all the environmental variables</li>
+<li><code>pbdLapply</code> - analogue of <code>lapply()</code></li>
+<li><code>pbdSapply</code> - analogue of <code>sapply()</code></li>
 </ul>
-</div>
-<div id="file-editing-over-ssh" class="section level3">
-<h3>File editing over ssh</h3>
-<p>Editing a file over SSH is not an easy task.</p>
-<ul>
-<li>use a text editor in the system (vim, emacs, nano)</li>
-<li>edit it locally and upload it to the server
-<ul>
-<li>either use <code>scp</code> command</li>
-<li>or a software, for example “Cyber Duck”.</li>
-</ul></li>
-</ul>
-</div>
-<div id="scp-command-to-copy-files-from-and-to-server" class="section level3">
-<h3><code>scp</code> command to copy files from and to server</h3>
-<p>To copy a local file <code>file.txt</code> to remote <code>~/foo/file.txt</code></p>
-<pre><code>scp file.txt sta141c-99@peloton.cse.ucdavis.edu:~/foo/</code></pre>
-<p>To copy a local directory to remote <code>~/foo/local_directory</code></p>
-<pre><code>scp -r local_directory sta141c-99@peloton.cse.ucdavis.edu:~/foo/</code></pre>
-<p>To copy a local file <code>file.txt</code> from remote <code>~/foo/file.txt</code></p>
-<pre><code>scp sta141c-99@peloton.cse.ucdavis.edu:~/foo/file.txt ./</code></pre>
-<p>To copy a directory from remote <code>~/foo/</code></p>
-<pre><code>scp -r sta141c-99@peloton.cse.ucdavis.edu:~/foo/ ./</code></pre>
-</div>
-</div>
-<div id="our-cluster" class="section level2">
-<h2>Our cluster</h2>
-<p>Our cluster uses SLURM to manage resources. There are two common resource management systems, PBS and SLURM. It’s not difficult to adapt to the other system once you know how a system works.</p>
-<ul>
-<li>first ssh into your account on peloton.cse.ucdavis.edu</li>
-<li>upload your R script to the server (either by a GUI software such as Cyber Duck or using <code>scp</code>)</li>
-</ul>
-<p>Important! - Do not run R in the head node - Be considerate, do not specific more than enough cores. Our class has 128 cores shared betwwen students. Use <code>sinfo</code> to query the current status of the cluster and <code>squeue</code> to check the running jobs in the cluster.</p>
-<div id="batch-submission" class="section level3">
-<h3>Batch submission</h3>
-<p>If you task takes a decent amount of time to complete, you may not want to run it directly via <code>srun</code> as any network connection issue may cause data lost. Instead, you could submit your job via <code>sbatch</code>.</p>
-<p>See the <code>batch</code> folder</p>
-<pre class="bash"><code># change directory to where job.sh is located
-sbatch job.sh</code></pre>
-<p>Use <code>squeue -u $USER</code> to show all your current jobs and use <code>scancel &lt;JOBID&gt;</code> to cancle your job.</p>
-</div>
-<div id="array-job" class="section level3">
-<h3>Array job</h3>
-<p>If you have a lot of tasks to be execuated but they absolutely need no communications, you could consider using an array job.</p>
-<p>See the <code>array</code> folder</p>
-<p>You could also submit an array job via <code>sbatch</code>.</p>
-<pre class="bash"><code># change directory to where array.sh is located
-sbatch array.sh</code></pre>
-</div>
-</div>
-<div id="reference" class="section level1">
-<h1>Reference</h1>
-<ul>
-<li>Episode 1 to 3 of <a href="http://swcarpentry.github.io/shell-novice/" class="uri">http://swcarpentry.github.io/shell-novice/</a></li>
-</ul>
+<p>There are three modes: <code>mw</code>, <code>spmd</code> and <code>dist</code>.</p>
 </div>
 
 
