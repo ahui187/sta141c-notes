@@ -388,8 +388,12 @@ summary {
 <li><a href="#notations">Notations</a></li>
 <li><a href="#a-general-picture-for-the-bootstrap">A general picture for the bootstrap</a></li>
 <li><a href="#a-example">A example</a></li>
+</ul></li>
+<li><a href="#classical-boostrap-confidence-interval">Classical boostrap confidence interval</a>
+<ul>
 <li><a href="#bootstrap-percentile-confidence-interval">Bootstrap Percentile confidence interval</a></li>
-<li><a href="#using-parallel-to-do-bootstrap">Using <code>parallel</code> to do bootstrap</a></li>
+<li><a href="#using-parallel-to-do-bootstrap-the-conventional-approach">Using <code>parallel</code> to do bootstrap (the conventional approach)</a></li>
+<li><a href="#using-furrr-to-do-bootstrap-my-recommendation">Using <code>furrr</code> to do bootstrap (my recommendation)</a></li>
 <li><a href="#using-pbdmpi-to-do-bootstrap">Using <code>pbdMPI</code> to do bootstrap</a></li>
 </ul></li>
 <li><a href="#reference">Reference</a></li>
@@ -440,7 +444,7 @@ summary {
 <h2>Notations</h2>
 <ul>
 <li><p>Denoting the first bootstrap data set by <span class="math inline">\(Z^{*1}\)</span>, we use <span class="math inline">\(Z^{*1}\)</span> to produce a new bootstrap estimate for <span class="math inline">\(\alpha\)</span>, which we call <span class="math inline">\(\hat \alpha^{*1}\)</span></p></li>
-<li><p>this procedure is repeated <span class="math inline">\(B\)</span> times for some large value of <span class="math inline">\(B\)</span> (say 100 or 1000)</p></li>
+<li><p>this procedure is repeated <span class="math inline">\(B\)</span> times for some large value of <span class="math inline">\(B\)</span> (say 5000 or 10000)</p></li>
 <li><p>we have <span class="math inline">\(B\)</span> different bootstrap data sets, <span class="math inline">\(Z^{*1},\ldots,Z^{*B}\)</span>, and <span class="math inline">\(B\)</span> corresponding <span class="math inline">\(\alpha\)</span> estimates, <span class="math inline">\(\hat \alpha^{*1},\ldots,\hat \alpha^{*B}\)</span></p></li>
 <li><p>We estimate the standard error of these bootstrap estimates using the formula <span class="math display">\[
  SE_{B}(\hat \alpha) = \sqrt{\frac{1}{B-1}\sum_{r=1}^{B} (\hat \alpha^{*r} - \bar{\hat
@@ -460,7 +464,7 @@ summary {
   summarize(r = cor(mpg, hp)) %&gt;%
   pull(r)</code></pre>
 <pre><code>## [1] -0.7761684</code></pre>
-<p>To get the “classical” confidence interval</p>
+<p>To get the “classical” confidence interval (by Fisher’s transformation)</p>
 <pre class="r"><code>with(mtcars, cor.test(mpg, hp)) %&gt;%
   tidy()</code></pre>
 <pre><code>## # A tibble: 1 x 8
@@ -468,8 +472,12 @@ summary {
 ##      &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;     &lt;int&gt;    &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;     &lt;chr&gt;      
 ## 1   -0.776     -6.74  1.79e-7        30   -0.885    -0.586 Pearson&#39;… two.sided</code></pre>
 <p>Use bootstrap to obtain a confidence interval</p>
-<pre class="r"><code>boots &lt;- bootstraps(mtcars, times = 1000)</code></pre>
-<p>Primarily used to obtain standard errors of an estimate. To get the classical boostrap confidence interval</p>
+<pre class="r"><code>boots &lt;- bootstraps(mtcars, times = 10000)</code></pre>
+</div>
+</div>
+<div id="classical-boostrap-confidence-interval" class="section level1">
+<h1>Classical boostrap confidence interval</h1>
+<p>Bootstrap is used to obtain standard errors of an estimate.</p>
 <pre class="r"><code>se &lt;- boots %&gt;%
   pull(splits) %&gt;%
   map_dbl(
@@ -481,15 +489,14 @@ summary {
   sd()
 
 with(mtcars, cor(mpg, hp)) + 1.96 * c(-1, 1) * se</code></pre>
-<pre><code>## [1] -0.8650531 -0.6872836</code></pre>
-</div>
-<div id="bootstrap-percentile-confidence-interval" class="section level2">
-<h2>Bootstrap Percentile confidence interval</h2>
+<pre><code>## [1] -0.8682771 -0.6840597</code></pre>
+<p>where <code>qnorm(0.975)</code> is roughly 1.96.</p>
+<div id="bootstrap-percentile-confidence-interval" class="section level3">
+<h3>Bootstrap Percentile confidence interval</h3>
 <ul>
-<li>Also provides approximate confidence intervals for a population parameter.</li>
 <li>Consider the 2.5th and 97.5 percentile of <span class="math inline">\(\hat \alpha^{*1},\ldots,\hat \alpha^{*B}\)</span></li>
-<li>The above interval is called a Bootstrap Percentile confidence interval. It is the simplest method (among many approaches) for obtaining a confidence interval from the bootstrap.</li>
-<li>It usually gives better results for heavily skewed distributions.</li>
+<li>The above interval is called a 95% Bootstrap Percentile confidence interval.</li>
+<li>It usually gives better results for heavily skeweddistributions.</li>
 </ul>
 <pre class="r"><code>boots %&gt;%
   pull(splits) %&gt;%
@@ -501,22 +508,17 @@ with(mtcars, cor(mpg, hp)) + 1.96 * c(-1, 1) * se</code></pre>
   ) %&gt;%
   quantile(p = c(0.025, 0.975))</code></pre>
 <pre><code>##       2.5%      97.5% 
-## -0.8681482 -0.6910532</code></pre>
+## -0.8733286 -0.6901960</code></pre>
 </div>
-<div id="using-parallel-to-do-bootstrap" class="section level2">
-<h2>Using <code>parallel</code> to do bootstrap</h2>
+<div id="using-parallel-to-do-bootstrap-the-conventional-approach" class="section level2">
+<h2>Using <code>parallel</code> to do bootstrap (the conventional approach)</h2>
 <p>First thing first, we don’t want to use <code>bootstraps()</code> function for parallel processing because it will make deep copy of the bootstrap datasets. We will do a more primitive resampling using <code>sample.int</code>.</p>
 <pre class="r"><code>library(parallel)
 cl &lt;- makeCluster(4)</code></pre>
-<pre class="r"><code>B &lt;- 1000
-clusterEvalQ(cl, {
-  # read the data in each worker
-  data(mtcars)
-  n &lt;- nrow(mtcars)
-  NULL
-}) %&gt;% invisible()
+<pre class="r"><code>B &lt;- 10000
 
 rs &lt;- parSapply(cl, seq_len(B), function(i) {
+  n &lt;- nrow(mtcars)
   index &lt;- sample.int(n, n, replace = TRUE)
   x &lt;- mtcars$mpg[index]
   y &lt;- mtcars$hp[index]
@@ -525,8 +527,25 @@ rs &lt;- parSapply(cl, seq_len(B), function(i) {
 
 rs %&gt;% quantile(c(0.025, 0.975))</code></pre>
 <pre><code>##       2.5%      97.5% 
-## -0.8764690 -0.6905619</code></pre>
+## -0.8750533 -0.6912642</code></pre>
 <pre class="r"><code>stopCluster(cl)  # stop the cluster finally</code></pre>
+</div>
+<div id="using-furrr-to-do-bootstrap-my-recommendation" class="section level2">
+<h2>Using <code>furrr</code> to do bootstrap (my recommendation)</h2>
+<pre class="r"><code>library(furrr)</code></pre>
+<pre><code>## Loading required package: future</code></pre>
+<pre class="r"><code>suppressWarnings(plan(multiprocess, workers = 4))</code></pre>
+<pre class="r"><code>B &lt;- 10000
+seq_len(B) %&gt;% future_map_dbl(function(i) {
+    n &lt;- nrow(mtcars)
+    index &lt;- sample.int(n, n, replace = TRUE)
+    x &lt;- mtcars$mpg[index]
+    y &lt;- mtcars$hp[index]
+    cor(x, y)
+}) %&gt;%
+  quantile(c(0.025, 0.975))</code></pre>
+<pre><code>##       2.5%      97.5% 
+## -0.8743144 -0.6914000</code></pre>
 </div>
 <div id="using-pbdmpi-to-do-bootstrap" class="section level2">
 <h2>Using <code>pbdMPI</code> to do bootstrap</h2>

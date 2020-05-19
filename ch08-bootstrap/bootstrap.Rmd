@@ -43,7 +43,7 @@ knitr::include_graphics("boot3.png")
 
 - Denoting the first bootstrap data set by $Z^{*1}$, we use $Z^{*1}$ to
 produce a new bootstrap estimate for $\alpha$, which we call $\hat \alpha^{*1}$
-- this procedure is repeated $B$ times for some large value of $B$ (say 100 or 1000)
+- this procedure is repeated $B$ times for some large value of $B$ (say 5000 or 10000)
 - we have $B$ different bootstrap data sets, $Z^{*1},\ldots,Z^{*B}$, and $B$
        corresponding $\alpha$ estimates, $\hat \alpha^{*1},\ldots,\hat \alpha^{*B}$
 - We estimate the standard error of these bootstrap estimates using the formula
@@ -73,7 +73,7 @@ mtcars %>%
   pull(r)
 ```
 
-To get the "classical" confidence interval
+To get the "classical" confidence interval (by Fisher's transformation)
 
 ```{r}
 with(mtcars, cor.test(mpg, hp)) %>%
@@ -83,11 +83,13 @@ with(mtcars, cor.test(mpg, hp)) %>%
 Use bootstrap to obtain a confidence interval
 
 ```{r}
-boots <- bootstraps(mtcars, times = 1000)
+boots <- bootstraps(mtcars, times = 10000)
 ```
 
-Primarily used to obtain standard errors of an estimate.
-To get the classical boostrap confidence interval
+
+# Classical boostrap confidence interval
+
+Bootstrap is used to obtain standard errors of an estimate.
 
 ```{r}
 se <- boots %>%
@@ -103,13 +105,13 @@ se <- boots %>%
 with(mtcars, cor(mpg, hp)) + 1.96 * c(-1, 1) * se
 ```
 
+where `qnorm(0.975)` is roughly 1.96.
 
-## Bootstrap Percentile confidence interval
+### Bootstrap Percentile confidence interval
 
-- Also provides approximate confidence intervals for a population parameter.
 - Consider the 2.5th and 97.5 percentile of $\hat \alpha^{*1},\ldots,\hat \alpha^{*B}$
-- The above interval is called a Bootstrap Percentile confidence interval. It is the simplest method (among many approaches) for obtaining a confidence interval from the bootstrap.
-- It usually gives better results for heavily skewed  distributions.
+- The above interval is called a 95% Bootstrap Percentile confidence interval.
+- It usually gives better results for heavily skeweddistributions.
 
 ```{r}
 boots %>%
@@ -124,7 +126,7 @@ boots %>%
 ```
 
 
-## Using `parallel` to do bootstrap
+## Using `parallel` to do bootstrap (the conventional approach)
 
 First thing first, we don't want to use `bootstraps()` function for parallel processing because it will make deep copy of the bootstrap datasets. We will do a more primitive resampling using `sample.int`.
 
@@ -135,15 +137,10 @@ cl <- makeCluster(4)
 
 
 ```{r}
-B <- 1000
-clusterEvalQ(cl, {
-  # read the data in each worker
-  data(mtcars)
-  n <- nrow(mtcars)
-  NULL
-}) %>% invisible()
+B <- 10000
 
 rs <- parSapply(cl, seq_len(B), function(i) {
+  n <- nrow(mtcars)
   index <- sample.int(n, n, replace = TRUE)
   x <- mtcars$mpg[index]
   y <- mtcars$hp[index]
@@ -156,6 +153,27 @@ rs %>% quantile(c(0.025, 0.975))
 ```{r}
 stopCluster(cl)  # stop the cluster finally
 ```
+
+
+## Using `furrr` to do bootstrap (my recommendation)
+
+```{r}
+library(furrr)
+suppressWarnings(plan(multiprocess, workers = 4))
+```
+
+```{r}
+B <- 10000
+seq_len(B) %>% future_map_dbl(function(i) {
+    n <- nrow(mtcars)
+    index <- sample.int(n, n, replace = TRUE)
+    x <- mtcars$mpg[index]
+    y <- mtcars$hp[index]
+    cor(x, y)
+}) %>%
+  quantile(c(0.025, 0.975))
+```
+
 
 ## Using `pbdMPI` to do bootstrap
 
