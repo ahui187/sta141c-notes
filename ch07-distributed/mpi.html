@@ -386,6 +386,7 @@ summary {
 <li><a href="#basic-communicator-wrangling">Basic Communicator Wrangling</a></li>
 <li><a href="#communication-functions">Communication functions</a></li>
 <li><a href="#parallel-lapply-functions">Parallel Lapply Functions</a></li>
+<li><a href="#advantages-of-spmd-over-masterworker">Advantages of SPMD over Master/Worker</a></li>
 </ul>
 </div>
 
@@ -397,7 +398,6 @@ summary {
 <blockquote>
 <p>SPMD (single program, multiple data) is a technique employed to achieve parallelism. Tasks are split up and run simultaneously on multiple processors with different input in order to obtain results faster.</p>
 </blockquote>
-<p>Advantages of SPMD over Master/Worker - It is very close to the serial code. i.e. SPMD is easy to modify from serial. - It is much shorter than the original Master/Worker version. i.e. SPMD is traceable for debugging. - It makes the master as one of workers. i.e. SPMD fully utilizes resources. - It is easy to automatically process large numbers of independent jobs. i.e. SPMD can parallelize by jobs.</p>
 <div id="mpi" class="section level2">
 <h2>MPI</h2>
 <p>MPI (Message Passing Interface) is one of the most standard parallel computing architectures. In R, there are two MPI packages <code>Rmpi</code> and <code>pbdMPI</code>.</p>
@@ -414,7 +414,7 @@ summary {
 <h2>SPMD</h2>
 <p>The general process in SPMD programs goes something like this:</p>
 <ul>
-<li>initialize communicators</li>
+<li>initialize communicators (workers)</li>
 <li>have each process read in its portion of the data</li>
 <li>perform computations</li>
 <li>communicate results</li>
@@ -458,6 +458,15 @@ srun -p high2 -N 2 -n 3 -t 1 Rscript 01-pbdmpi.R</code></pre>
 <li><code>pbdSapply</code> - analogue of <code>sapply()</code></li>
 </ul>
 <p>There are three modes: <code>mw</code>, <code>spmd</code> and <code>dist</code>.</p>
+</div>
+<div id="advantages-of-spmd-over-masterworker" class="section level2">
+<h2>Advantages of SPMD over Master/Worker</h2>
+<ul>
+<li>It is very close to the serial code. i.e. SPMD is easy to modify from serial.</li>
+<li>It is much shorter than the original Master/Worker version. i.e. SPMD is traceable for debugging.</li>
+<li>It makes the master as one of workers. i.e. SPMD fully utilizes resources.</li>
+<li>It is easy to automatically process large numbers of independent jobs. i.e. SPMD can parallelize by jobs.</li>
+</ul>
 </div>
 
 

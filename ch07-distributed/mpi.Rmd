@@ -14,13 +14,6 @@ There are two common parallelization models in parallel programming
 > SPMD (single program, multiple data) is a technique employed to achieve parallelism. Tasks are split up and run simultaneously on multiple processors with different input in order to obtain results faster. 
 
 
-Advantages of SPMD over Master/Worker
-- It is very close to the serial code. i.e. SPMD is easy to modify from serial.
-- It is much shorter than the original Master/Worker version. i.e. SPMD is traceable for debugging.
-- It makes the master as one of workers. i.e. SPMD fully utilizes resources.
-- It is easy to automatically process large numbers of independent jobs. i.e. SPMD can parallelize by jobs.
-
-
 ## MPI
 
 MPI (Message Passing Interface) is one of the most standard parallel computing architectures. In R, there are two MPI packages `Rmpi` and `pbdMPI`.
@@ -39,7 +32,7 @@ In python, there is `mpi4py`. The usage of it is very similar to `pbdMPI`.
 
 The general process in SPMD programs goes something like this:
 
-- initialize communicators
+- initialize communicators (workers)
 - have each process read in its portion of the data
 - perform computations
 - communicate results
@@ -99,3 +92,12 @@ You could press `ctrl+c` anytime to interrupt the job.
 - `pbdSapply` - analogue of `sapply()`
 
 There are three modes: `mw`, `spmd` and `dist`.
+
+
+
+## Advantages of SPMD over Master/Worker
+
+- It is very close to the serial code. i.e. SPMD is easy to modify from serial.
+- It is much shorter than the original Master/Worker version. i.e. SPMD is traceable for debugging.
+- It makes the master as one of workers. i.e. SPMD fully utilizes resources.
+- It is easy to automatically process large numbers of independent jobs. i.e. SPMD can parallelize by jobs.
