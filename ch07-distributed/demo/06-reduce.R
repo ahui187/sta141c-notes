@@ -11,10 +11,10 @@ init()
 
 ### Examples.
 x <- .comm.rank + 1
-comm.cat("x =", x, "\n", all.rank = TRUE)
+comm.cat("x =", x, "\n", rank.print = 0)
 
-y <- reduce(x, op = "sum")  # only rank 0 receives the sum
-comm.cat("y is ", y, "\n", all.rank = TRUE)
+y <- reduce(x, op = "sum", rank.dest = 0)  # only rank 0 receives the sum
+comm.cat("y is ", y, "\n", rank.print = 0)
 
 ### Finish.
 finalize()

@@ -27,7 +27,8 @@ output:
 | 04-30               | [R packages](ch05-packages/packages.Rmd)        | [packages]
 | 05-05, 05-07        | [Parallel](ch06-parallel/parallel.Rmd)          | [parallel]
 | 05-12               | [shell](ch07-distributed/shell.Rmd)             | [shell]
-| 05-14               | [mpi](ch07-distributed/mpi.Rmd)             | [mpi]
+| 05-14, 05-19        | [mpi](ch07-distributed/mpi.Rmd)             | [mpi]
+| 05-19               | [bootstrap](ch08-bootstrap/bootstrap.Rmd)             | [bootstrap]
 
 
 [introduction]: README.md
@@ -40,6 +41,7 @@ output:
 [parallel]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch06-parallel/parallel.html
 [shell]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-distributed/shell.html
 [mpi]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-distributed/mpi.html
+[bootstrap]: https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch08-bootstrap/bootstrap.html
 
 
 ## Links

@@ -16,7 +16,7 @@ if (.comm.rank == 0) {
     x <- NULL
 }
 
-y <- scatter(x)
+y <- scatter(x, rank.source = 0)
 comm.print(y, all.rank = TRUE)
 
 ### Finish.

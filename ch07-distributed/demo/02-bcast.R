@@ -16,8 +16,8 @@ if (.comm.rank == 0) {
     x <- NULL
 }
 
-y <- bcast(x)
-comm.print(y, all.rank = TRUE)
+y <- bcast(x, rank.source = 0)
+comm.cat("y = ", y, all.rank = TRUE)
 
 ### Finish.
 finalize()
