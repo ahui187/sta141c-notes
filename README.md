@@ -38,7 +38,8 @@
 | 04-30               | [R packages](ch05-packages/packages.Rmd)        | [packages](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch05-packages/packages.html)    |
 | 05-05, 05-07        | [Parallel](ch06-parallel/parallel.Rmd)          | [parallel](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch06-parallel/parallel.html)    |
 | 05-12               | [shell](ch07-distributed/shell.Rmd)             | [shell](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-distributed/shell.html)       |
-| 05-14               | [mpi](ch07-distributed/mpi.Rmd)                 | [mpi](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-distributed/mpi.html)           |
+| 05-14, 05-19        | [mpi](ch07-distributed/mpi.Rmd)                 | [mpi](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-distributed/mpi.html)           |
+| 05-19               | [bootstrap](ch08-bootstrap/bootstrap.Rmd)       | [bootstrap](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch08-bootstrap/bootstrap.html) |
 
 ## Links
 
