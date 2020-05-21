@@ -10,7 +10,7 @@ init()
 .comm.size <- comm.size()
 .comm.rank <- comm.rank()
 
-# different processor gets different x
+# different process gets different x
 x <- sample(10, 3)
 
 # the result of y is not gathered

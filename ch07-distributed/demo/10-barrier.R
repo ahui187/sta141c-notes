@@ -12,6 +12,7 @@ if (comm.rank() == 0) {
 }
 
 barrier()  # wait for all processors
-comm.print("ok!")
+
+cat("rank", comm.rank(), ": ok\n")
 
 finalize()
