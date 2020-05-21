@@ -40,6 +40,7 @@
 | 05-12               | [shell](ch07-distributed/shell.Rmd)             | [shell](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-distributed/shell.html)       |
 | 05-14, 05-19        | [mpi](ch07-distributed/mpi.Rmd)                 | [mpi](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch07-distributed/mpi.html)           |
 | 05-19               | [bootstrap](ch08-bootstrap/bootstrap.Rmd)       | [bootstrap](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch08-bootstrap/bootstrap.html) |
+| 05-21               | [blb](ch08-bootstrap/blb.Rmd)                   | [blb](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch08-bootstrap/blb.html)             |
 
 ## Links
 
