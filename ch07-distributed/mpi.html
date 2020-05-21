@@ -429,7 +429,22 @@ summary {
 </div>
 <div id="basic-communicator-wrangling" class="section level2">
 <h2>Basic Communicator Wrangling</h2>
-<p>Managing a Communicator: Create and destroy communicators - <code>init()</code> Initialize communicator - <code>finalize()</code> shut down communicator(s) Rank query: Determine the processor’s position in the communicator - <code>comm.rank()</code> “who am I?”&quot; - <code>comm.size()</code> “how many of us are there?”&quot; - Print: printing with control over which processor prints. - <code>comm.print(x, ...)</code> - <code>comm.cat(x, ...)</code></p>
+<p>Managing a Communicator: Create and destroy communicators</p>
+<ul>
+<li><code>init()</code> Initialize communicator</li>
+<li><code>finalize()</code> shut down communicator(s)</li>
+</ul>
+<p>Rank query: Determine the processor’s position in the communicator</p>
+<ul>
+<li><code>comm.rank()</code> “who am I?”&quot;</li>
+<li><code>comm.size()</code> “how many of us are there?”&quot;</li>
+</ul>
+<p>Print: printing with control over which processor prints.</p>
+<ul>
+<li><p><code>comm.print(x, ...)</code></p></li>
+<li><p><code>comm.cat(x, ...)</code></p>
+<p>Warning: These two functions use barrier() to make sure the well printing process on screen, so should be called by all processors to avoid a deadlock. A typical misuse is called inside a condition check, such as if(.comm.rank == 0) comm.cat(…).</p></li>
+</ul>
 <p>To run the script <code>01-pbdmpi.R</code></p>
 <pre class="bash"><code># make site packages such as pbdMPI available
 module load R

@@ -51,14 +51,21 @@ svn export https://github.com/ucdavis-sta141c-sq-2020/sta141c-notes/branches/mas
 ## Basic Communicator Wrangling
 
 Managing a Communicator: Create and destroy communicators
+
 - `init()` Initialize communicator
 - `finalize()` shut down communicator(s)
+
 Rank query: Determine the processor’s position in the communicator
+
 - `comm.rank()` "who am I?""
 - `comm.size()` "how many of us are there?""
-- Print: printing with control over which processor prints.
+
+Print: printing with control over which processor prints.
+
 - `comm.print(x, ...)`
 - `comm.cat(x, ...)`
+  
+  Warning: These two functions use barrier() to make sure the well printing process on screen, so should be called by all processors to avoid a deadlock. A typical misuse is called inside a condition check, such as if(.comm.rank == 0) comm.cat(...).
 
 
 To run the script `01-pbdmpi.R`
