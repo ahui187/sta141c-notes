@@ -393,7 +393,7 @@ summary {
 <ul>
 <li><a href="#bootstrap-percentile-confidence-interval">Bootstrap Percentile confidence interval</a></li>
 <li><a href="#using-parallel-to-do-bootstrap-the-conventional-approach">Using <code>parallel</code> to do bootstrap (the conventional approach)</a></li>
-<li><a href="#using-furrr-to-do-bootstrap-my-recommendation">Using <code>furrr</code> to do bootstrap (my recommendation)</a></li>
+<li><a href="#using-furrr-to-do-bootstrap-my-recommendation-over-parsapplyparlapply">Using <code>furrr</code> to do bootstrap (my recommendation over parSapply/parLapply)</a></li>
 <li><a href="#using-pbdmpi-to-do-bootstrap">Using <code>pbdMPI</code> to do bootstrap</a></li>
 </ul></li>
 <li><a href="#reference">Reference</a></li>
@@ -465,6 +465,18 @@ summary {
   pull(r)</code></pre>
 <pre><code>## [1] -0.7761684</code></pre>
 <p>To get the “classical” confidence interval (by Fisher’s transformation)</p>
+<pre class="r"><code>with(mtcars, cor.test(mpg, hp))</code></pre>
+<pre><code>## 
+##  Pearson&#39;s product-moment correlation
+## 
+## data:  mpg and hp
+## t = -6.7424, df = 30, p-value = 1.788e-07
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  -0.8852686 -0.5860994
+## sample estimates:
+##        cor 
+## -0.7761684</code></pre>
 <pre class="r"><code>with(mtcars, cor.test(mpg, hp)) %&gt;%
   tidy()</code></pre>
 <pre><code>## # A tibble: 1 x 8
@@ -489,7 +501,7 @@ summary {
   sd()
 
 with(mtcars, cor(mpg, hp)) + 1.96 * c(-1, 1) * se</code></pre>
-<pre><code>## [1] -0.8682771 -0.6840597</code></pre>
+<pre><code>## [1] -0.8678033 -0.6845335</code></pre>
 <p>where <code>qnorm(0.975)</code> is roughly 1.96.</p>
 <div id="bootstrap-percentile-confidence-interval" class="section level3">
 <h3>Bootstrap Percentile confidence interval</h3>
@@ -508,7 +520,7 @@ with(mtcars, cor(mpg, hp)) + 1.96 * c(-1, 1) * se</code></pre>
   ) %&gt;%
   quantile(p = c(0.025, 0.975))</code></pre>
 <pre><code>##       2.5%      97.5% 
-## -0.8733286 -0.6901960</code></pre>
+## -0.8718557 -0.6912333</code></pre>
 </div>
 <div id="using-parallel-to-do-bootstrap-the-conventional-approach" class="section level2">
 <h2>Using <code>parallel</code> to do bootstrap (the conventional approach)</h2>
@@ -527,11 +539,11 @@ rs &lt;- parSapply(cl, seq_len(B), function(i) {
 
 rs %&gt;% quantile(c(0.025, 0.975))</code></pre>
 <pre><code>##       2.5%      97.5% 
-## -0.8750533 -0.6912642</code></pre>
+## -0.8745564 -0.6922447</code></pre>
 <pre class="r"><code>stopCluster(cl)  # stop the cluster finally</code></pre>
 </div>
-<div id="using-furrr-to-do-bootstrap-my-recommendation" class="section level2">
-<h2>Using <code>furrr</code> to do bootstrap (my recommendation)</h2>
+<div id="using-furrr-to-do-bootstrap-my-recommendation-over-parsapplyparlapply" class="section level2">
+<h2>Using <code>furrr</code> to do bootstrap (my recommendation over parSapply/parLapply)</h2>
 <pre class="r"><code>library(furrr)</code></pre>
 <pre><code>## Loading required package: future</code></pre>
 <pre class="r"><code>suppressWarnings(plan(multiprocess, workers = 4))</code></pre>
@@ -545,10 +557,11 @@ seq_len(B) %&gt;% future_map_dbl(function(i) {
 }) %&gt;%
   quantile(c(0.025, 0.975))</code></pre>
 <pre><code>##       2.5%      97.5% 
-## -0.8743144 -0.6914000</code></pre>
+## -0.8735301 -0.6895879</code></pre>
 </div>
 <div id="using-pbdmpi-to-do-bootstrap" class="section level2">
 <h2>Using <code>pbdMPI</code> to do bootstrap</h2>
+<p>See <a href="bootstrap">bootstrap</a> folder.</p>
 </div>
 </div>
 <div id="reference" class="section level1">

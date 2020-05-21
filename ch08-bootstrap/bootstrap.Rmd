@@ -160,7 +160,7 @@ stopCluster(cl)  # stop the cluster finally
 ```
 
 
-## Using `furrr` to do bootstrap (my recommendation over parLapply)
+## Using `furrr` to do bootstrap (my recommendation over parSapply/parLapply)
 
 ```{r}
 library(furrr)
@@ -182,7 +182,7 @@ seq_len(B) %>% future_map_dbl(function(i) {
 
 ## Using `pbdMPI` to do bootstrap
 
-See [mpi](mpi) folder.
+See [bootstrap](bootstrap) folder.
 
 
 # Reference
