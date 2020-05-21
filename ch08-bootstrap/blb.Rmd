@@ -1,0 +1,243 @@
+---
+title: "Bootstrap"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+```{r}
+library(tidyverse)
+```
+
+# Divide and conquer a.k.a. mapreduce does not always work
+
+Divide and conquer allows a single task operation to be executed parallelly, but it does not always work.
+
+```{r, echo = FALSE}
+DiagrammeR::grViz("mapreduce.gv", height = 200)
+```
+
+Recall that there are two ways to get data to the workers in cluster:
+
+- Partition a data set that already loaded in the main process.
+- Load a different subset of the data in each worker.
+
+The second appoarch is more efficient, so we first random split `flights` into 10 files.
+In practice, the subsets are more likely to be loaded from a database server directly.
+
+```{r}
+library(nycflights13)
+set.seed(141)
+m <- 10
+groups <- sample(seq_len(m), nrow(flights), replace = TRUE)
+dir.create("flights/", showWarnings = FALSE)
+for (i in seq_len(m)) {
+  write_csv(filter(flights, groups == i), str_c("flights/", i, ".csv"))
+}
+```
+
+As what we have done in Chapter 6. The mean could be computed by mapreduce with
+
+```{r, message = FALSE}
+file_names <- file.path("flights", list.files("flights"))
+mean_list <- file_names %>% map(~ mean(read_csv(., col_types = cols())$dep_delay, na.rm = TRUE))
+(mean_dep_delay <- mean_list %>% reduce(`+`) / m)
+```
+
+You may wonder if you could do the same for confidence intervals.
+```{r, message = FALSE}
+ci_list <- file_names %>% map(~ t.test(read_csv(., col_types = cols())$dep_delay)$conf.int)
+(mean_ci <- ci_list %>% reduce(`+`) / m)
+```
+Yeah, it gives us a result. But wait, it doesn't look right. Though the mapreduce procedure speeds up the computation, it should give similar result as if we work on the whole dataset.
+
+```{r}
+t.test(flights$dep_delay)$conf.int
+```
+
+
+*Lesson learned*: we cannot combine any statistics in the reduce step by simply taking the average. We may need to scale the statistics analytically which could be hard or impossible.
+
+
+# The bag of little bootstraps (BLB)
+
+It is a procedure which incorporates features of both the bootstrap and subsampling to yield a robust, computationally efficient means of assessing the quality of estimators
+
+
+```{r, echo = FALSE}
+DiagrammeR::grViz("blb.gv", height = 300)
+```
+
+- sample without replacement the sample $s$ times into sizes of $b$
+- for each subsample
+  - resample each until sample size is $n$, $r$ times
+  - compute the bootstrap statistic (e,g., the mean) for each bootstrap sample
+  - compute the statistic (e.g., confidence interval) from the bootstrap statistics
+- take the average of the statistics
+
+
+Bascially, the bag of little bootstraps = subsample + bootstrap. However, for each bootstrap, we sample $n$ from $b$ with replacement instead of sample $b$ from $b$ as in oridinary bootstrap.
+
+
+## A naive (single core) implementation
+
+```{r, message = FALSE}
+r <- 10  # r should be at least a few thousands, we are using 10 for demo
+n <- nrow(flights)
+
+each_boot <- function(i, data) {
+  mean(sample(data, n, replace = TRUE), na.rm = TRUE)
+}
+
+ci_list <- file_names %>% map(~ {
+  sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
+  map_dbl(seq_len(r), each_boot, data = sub_dep_delay) %>% 
+    quantile(c(0.025, 0.975))
+})
+
+reduce(ci_list, `+`) / length(ci_list)
+```
+
+
+The `sample` above is not memory and computationally efficient.
+
+
+## With multinomial distribution
+
+```{r}
+# the frequency table of selecting 1000 items from 1:10 with replacement
+table(sample(1:10, 100, replace = TRUE))
+```
+
+A more efficent way is to first generate the repeitions by multinomial distribution.
+
+```{r}
+rmultinom(1, 100, rep(1, 10))
+```
+
+*Compute the mean with the frequencies*
+
+```{r, message = FALSE}
+sub_dep_delay <- read_csv(file_names[1], col_types = cols())$dep_delay
+# it's important to remove the missing values in this step
+sub_dep_delay <- sub_dep_delay[!is.na(sub_dep_delay)]
+freqs <- rmultinom(1, n, rep(1, length(sub_dep_delay)))
+sum(sub_dep_delay * freqs) / n
+```
+
+*Put everything back*
+
+```{r, message = FALSE}
+r <- 10  # r should be at least a few thousands, we are using 10 for demo
+n <- nrow(flights)
+
+each_boot2 <- function(i, data) {
+  non_missing_data <- data[!is.na(data)]
+  freqs <- rmultinom(1, n, rep(1, length(non_missing_data)))
+  sum(non_missing_data * freqs) / n
+}
+
+ci_list <- file_names %>% map(~ {
+  sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
+  map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %>% 
+    quantile(c(0.025, 0.975))
+})
+
+reduce(ci_list, `+`) / length(ci_list)
+```
+
+
+## A parallel version using `furrr`.
+
+
+```{r, message = FALSE}
+library(furrr)
+plan(multiprocess, workers = 5)
+```
+
+```{r, message = FALSE}
+ci_list <- file_names %>% future_map(~ {
+  sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
+  map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %>% 
+    quantile(c(0.025, 0.975))
+})
+reduce(ci_list, `+`) / length(ci_list)
+```
+
+
+## Comparsion
+
+
+```{r, eval = FALSE}
+r <- 500
+naive <- function() {
+  file_names %>% map(~ {
+    sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
+    map_dbl(seq_len(r), each_boot, data = sub_dep_delay) %>% 
+      quantile(c(0.025, 0.975))
+  })
+}
+improve <- function() {
+  file_names %>% map(~ {
+    sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
+    map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %>% 
+      quantile(c(0.025, 0.975))
+  })
+}
+multi_core <- function() {
+  file_names %>% future_map(~ {
+    sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
+    map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %>% 
+      quantile(c(0.025, 0.975))
+  })
+}
+```
+
+```{r, eval = FALSE, message = FALSE}
+# system.time(naive())  # [skipped] take forver
+system.time(improve())  # 4x seconds
+system.time(multi_core()) # 1x seconds
+```
+
+
+# Another example
+
+We want to compute a confidence interval between the correlation of `dep_delay` and `arr_delay`
+
+```{r}
+cor.test(flights$dep_delay, flights$arr_delay)
+```
+
+
+```{r, message = FALSE}
+r <- 100  # in practice, r shoule be at least 1000 - 10000
+
+boot_cor <- function(i, data) {
+  # this function bootstrap data and compute the correlation
+  b <- nrow(data)
+  weights <- rmultinom(1, n, rep(1, b))
+  x <- data$arr_delay
+  y <- data$dep_delay
+  mux <- sum(weights * x) / n
+  muy <- sum(weights * y) / n
+  sxx <- sum(weights * (x - mux)^2)
+  syy <- sum(weights * (y - muy)^2)
+  sxy <- sum(weights * (y - muy) * (x - mux))
+  sxy / sqrt(sxx * syy)
+}
+```
+
+
+```{r, eval = FALSE, message = FALSE}
+ci_list <- file_names %>% future_map(~ {
+  data <- read_csv(., col_types = cols()) %>%
+    select(arr_delay, dep_delay) %>% 
+    drop_na()
+  map_dbl(seq_len(r), boot_cor, data = data) %>% 
+    quantile(c(0.025, 0.975))
+})
+
+reduce(ci_list, `+`) / length(ci_list)
+```
+
