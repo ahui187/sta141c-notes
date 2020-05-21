@@ -1609,19 +1609,19 @@ summary {
 </div>
 
 <pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──</code></pre>
-<pre><code>## ✔ ggplot2 3.3.0     ✔ purrr   0.3.4
-## ✔ tibble  3.0.1     ✔ dplyr   0.8.5
-## ✔ tidyr   1.0.2     ✔ stringr 1.4.0
-## ✔ readr   1.3.1     ✔ forcats 0.5.0</code></pre>
-<pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre><code>## ── Attaching packages ────────────────────────────────────────── tidyverse 1.3.0 ──</code></pre>
+<pre><code>## ✓ ggplot2 3.3.0     ✓ purrr   0.3.4
+## ✓ tibble  3.0.1     ✓ dplyr   0.8.5
+## ✓ tidyr   1.0.2     ✓ stringr 1.4.0
+## ✓ readr   1.3.1     ✓ forcats 0.5.0</code></pre>
+<pre><code>## ── Conflicts ───────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
 <div id="divide-and-conquer-a.k.a.-mapreduce-does-not-always-work" class="section level1">
 <h1>Divide and conquer a.k.a. mapreduce does not always work</h1>
 <p>Divide and conquer allows a single task operation to be executed parallelly, but it does not always work.</p>
-<div id="htmlwidget-7eaefd005a5f0fc21332" style="width:672px;height:200px;" class="grViz html-widget"></div>
-<script type="application/json" data-for="htmlwidget-7eaefd005a5f0fc21332">{"x":{"diagram":"digraph mapreduce {\n  rankdir=LR;\n  node [shape = rectangle]\n  data [label = \"data\"]\n  node1 [label = \"subsample 1\"]\n  node2 [label = \"subsample 2\"]\n  nodek [label = \"subsample k\"]\n  stat1 [label = \"statistic 1\"]\n  stat2 [label = \"statistic 2\"]\n  statk [label = \"statistic k\"]\n\n  data -> node2 [label = \"map\"]\n  data -> {node1, nodek}\n  node2 -> nodek [style = dotted, arrowhead = none]\n  {rank = same; node1; node2; nodek;}\n  node1 -> stat1\n  node2 -> stat2\n  nodek -> statk\n  stat2 -> statk [style = dotted, arrowhead = none]\n  {rank = same; stat1; stat2; statk;}\n  {stat1, statk} -> result\n  stat2 -> result [label = \"reduce\"]\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-f64f01bea738318026f6" style="width:672px;height:200px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-f64f01bea738318026f6">{"x":{"diagram":"digraph mapreduce {\n  rankdir=LR;\n  node [shape = rectangle]\n  data [label = \"data\"]\n  node1 [label = \"subsample 1\"]\n  node2 [label = \"subsample 2\"]\n  nodek [label = \"subsample k\"]\n  stat1 [label = \"statistic 1\"]\n  stat2 [label = \"statistic 2\"]\n  statk [label = \"statistic k\"]\n\n  data -> node2 [label = \"map\"]\n  data -> {node1, nodek}\n  node2 -> nodek [style = dotted, arrowhead = none]\n  {rank = same; node1; node2; nodek;}\n  node1 -> stat1\n  node2 -> stat2\n  nodek -> statk\n  stat2 -> statk [style = dotted, arrowhead = none]\n  {rank = same; stat1; stat2; statk;}\n  {stat1, statk} -> result\n  stat2 -> result [label = \"reduce\"]\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 <p>Recall that there are two ways to get data to the workers in cluster:</p>
 <ul>
 <li>Partition a data set that already loaded in the main process.</li>
@@ -1636,13 +1636,21 @@ dir.create(&quot;flights/&quot;, showWarnings = FALSE)
 for (i in seq_len(m)) {
   write_csv(filter(flights, groups == i), str_c(&quot;flights/&quot;, i, &quot;.csv&quot;))
 }</code></pre>
-<p>As what we have done in Chapter 6. The mean could be computed by mapreduce with</p>
+<p>As what we have done in Chapter 6. The mean could be computed by “mapreduce” with</p>
 <pre class="r"><code>file_names &lt;- file.path(&quot;flights&quot;, list.files(&quot;flights&quot;))
-mean_list &lt;- file_names %&gt;% map(~ mean(read_csv(., col_types = cols())$dep_delay, na.rm = TRUE))
+mean_list &lt;- file_names %&gt;% 
+  map(~ {
+    df &lt;- read_csv(., col_types = cols())
+    mean(df$dep_delay, na.rm = TRUE)
+  })
 (mean_dep_delay &lt;- mean_list %&gt;% reduce(`+`) / m)</code></pre>
 <pre><code>## [1] 12.63861</code></pre>
 <p>You may wonder if you could do the same for confidence intervals.</p>
-<pre class="r"><code>ci_list &lt;- file_names %&gt;% map(~ t.test(read_csv(., col_types = cols())$dep_delay)$conf.int)
+<pre class="r"><code>ci_list &lt;- file_names %&gt;% 
+  map(~ {
+    df &lt;- read_csv(., col_types = cols())
+    t.test(df$dep_delay)$conf.int
+  })
 (mean_ci &lt;- ci_list %&gt;% reduce(`+`) / m)</code></pre>
 <pre><code>## [1] 12.20391 13.07331
 ## attr(,&quot;conf.level&quot;)
@@ -1657,8 +1665,9 @@ mean_list &lt;- file_names %&gt;% map(~ mean(read_csv(., col_types = cols())$dep
 <div id="the-bag-of-little-bootstraps-blb" class="section level1">
 <h1>The bag of little bootstraps (BLB)</h1>
 <p>It is a procedure which incorporates features of both the bootstrap and subsampling to yield a robust, computationally efficient means of assessing the quality of estimators</p>
-<div id="htmlwidget-14b1847e9519adc25a59" style="width:672px;height:300px;" class="grViz html-widget"></div>
-<script type="application/json" data-for="htmlwidget-14b1847e9519adc25a59">{"x":{"diagram":"digraph mapreduce {\n  rankdir=LR;\n  node [shape = rectangle]\n  data [label = \"data\"]\n  node1 [label = \"subsample 1\"]\n  node2 [label = \"subsample 2\"]\n  nodes [label = \"subsample s\"]\n  stat1 [label = \"statistic 1*\"]\n  stat2 [label = \"statistic 2*\"]\n  stats [label = \"statistic s*\"]\n\n  bt11 [label = \"bootstrap 1,1\"]\n  bt1r [label = \"bootstrap 1,r\"]\n  bt21 [label = \"bootstrap 2,1\"]\n  bt2r [label = \"bootstrap 2,r\"]\n  bts1 [label = \"bootstrap s,1\"]\n  btsr [label = \"bootstrap s,r\"]\n\n  fun11 [label = \"statistic 1,1\"]\n  fun1r [label = \"statistic 1,r\"]\n  fun21 [label = \"statistic 2,1\"]\n  fun2r [label = \"statistic 2,r\"]\n  funs1 [label = \"statistic s,1\"]\n  funsr [label = \"statistic s,r\"]\n\n  data -> node2 [label = \"map\"]\n  data -> {node1, nodes}\n  node2 -> nodes [style = dotted, arrowhead = none]\n  {rank = same; node1; node2; nodes;}\n\n  node1 -> bt11\n  node1 -> bt1r\n  bt11 -> bt1r [style = dotted, arrowhead = none]\n  node2 -> bt21\n  node2 -> bt2r\n  bt21 -> bt2r [style = dotted, arrowhead = none]\n  nodes -> bts1\n  nodes -> btsr\n  bts1 -> btsr [style = dotted, arrowhead = none]\n  {rank = same; bt11; bt1r; bt21; bt2r; bts1; btsr}\n\n  bt11 -> fun11\n  bt1r -> fun1r\n  fun11 -> fun1r [style = dotted, arrowhead = none]\n  bt21 -> fun21\n  bt2r -> fun2r\n  fun21 -> fun2r [style = dotted, arrowhead = none]\n  bts1 -> funs1\n  btsr -> funsr\n  funs1 -> funsr [style = dotted, arrowhead = none]\n  {rank = same; fun11; fun1r; fun21; fun2r; funs1; funsr}\n\n  {fun11, fun1r} -> stat1\n  {fun21, fun2r} -> stat2\n  {funs1, funsr} -> stats\n\n  {rank = same; stat1; stat2; stats;}\n  {stat1, stats} -> result\n  stat2 -> result [label = \"reduce\"]\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-618ea1403db8bbe27507" style="width:672px;height:300px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-618ea1403db8bbe27507">{"x":{"diagram":"digraph mapreduce {\n  rankdir=LR;\n  node [shape = rectangle]\n  data [label = \"data\"]\n  node1 [label = \"subsample 1\"]\n  node2 [label = \"subsample 2\"]\n  nodes [label = \"subsample s\"]\n  stat1 [label = \"statistic 1*\"]\n  stat2 [label = \"statistic 2*\"]\n  stats [label = \"statistic s*\"]\n\n  bt11 [label = \"bootstrap 1,1\"]\n  bt1r [label = \"bootstrap 1,r\"]\n  bt21 [label = \"bootstrap 2,1\"]\n  bt2r [label = \"bootstrap 2,r\"]\n  bts1 [label = \"bootstrap s,1\"]\n  btsr [label = \"bootstrap s,r\"]\n\n  fun11 [label = \"statistic 1,1\"]\n  fun1r [label = \"statistic 1,r\"]\n  fun21 [label = \"statistic 2,1\"]\n  fun2r [label = \"statistic 2,r\"]\n  funs1 [label = \"statistic s,1\"]\n  funsr [label = \"statistic s,r\"]\n\n  data -> node2 [label = \"map\"]\n  data -> {node1, nodes}\n  node2 -> nodes [style = dotted, arrowhead = none]\n  {rank = same; node1; node2; nodes;}\n\n  node1 -> bt11\n  node1 -> bt1r\n  bt11 -> bt1r [style = dotted, arrowhead = none]\n  node2 -> bt21\n  node2 -> bt2r\n  bt21 -> bt2r [style = dotted, arrowhead = none]\n  nodes -> bts1\n  nodes -> btsr\n  bts1 -> btsr [style = dotted, arrowhead = none]\n  {rank = same; bt11; bt1r; bt21; bt2r; bts1; btsr}\n\n  bt11 -> fun11\n  bt1r -> fun1r\n  fun11 -> fun1r [style = dotted, arrowhead = none]\n  bt21 -> fun21\n  bt2r -> fun2r\n  fun21 -> fun2r [style = dotted, arrowhead = none]\n  bts1 -> funs1\n  btsr -> funsr\n  funs1 -> funsr [style = dotted, arrowhead = none]\n  {rank = same; fun11; fun1r; fun21; fun2r; funs1; funsr}\n\n  {fun11, fun1r} -> stat1\n  {fun21, fun2r} -> stat2\n  {funs1, funsr} -> stats\n\n  {rank = same; stat1; stat2; stats;}\n  {stat1, stats} -> result\n  stat2 -> result [label = \"reduce\"]\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+<p>Bascially, the bag of little bootstraps = subsample + bootstrap. However, for each bootstrap, we sample <span class="math inline">\(n\)</span> from <span class="math inline">\(b\)</span> with replacement instead of sample <span class="math inline">\(b\)</span> from <span class="math inline">\(b\)</span> as in oridinary bootstrap.</p>
 <ul>
 <li>sample without replacement the sample <span class="math inline">\(s\)</span> times into sizes of <span class="math inline">\(b\)</span></li>
 <li>for each subsample
@@ -1669,54 +1678,75 @@ mean_list &lt;- file_names %&gt;% map(~ mean(read_csv(., col_types = cols())$dep
 </ul></li>
 <li>take the average of the statistics</li>
 </ul>
-<p>Bascially, the bag of little bootstraps = subsample + bootstrap. However, for each bootstrap, we sample <span class="math inline">\(n\)</span> from <span class="math inline">\(b\)</span> with replacement instead of sample <span class="math inline">\(b\)</span> from <span class="math inline">\(b\)</span> as in oridinary bootstrap.</p>
 <div id="a-naive-single-core-implementation" class="section level2">
 <h2>A naive (single core) implementation</h2>
-<pre class="r"><code>r &lt;- 10  # r should be at least a few thousands, we are using 10 for demo
+<pre class="r"><code>r &lt;- 10  # r should be at least a few thousands, say 10000, we are using 10 for demo
 n &lt;- nrow(flights)
 
-each_boot &lt;- function(i, data) {
-  mean(sample(data, n, replace = TRUE), na.rm = TRUE)
-}
-
 ci_list &lt;- file_names %&gt;% map(~ {
-  sub_dep_delay &lt;- read_csv(., col_types = cols())$dep_delay
-  map_dbl(seq_len(r), each_boot, data = sub_dep_delay) %&gt;% 
+  df &lt;- read_csv(., col_types = cols()) %&gt;%
+    select(dep_delay)
+  seq_len(r) %&gt;%
+    map_dbl(~{
+      df &lt;- df[sample(seq_len(nrow(df)), n, replace = TRUE), ]
+      mean(df$dep_delay, na.rm = TRUE)
+    }) %&gt;%
     quantile(c(0.025, 0.975))
 })
 
 reduce(ci_list, `+`) / length(ci_list)</code></pre>
 <pre><code>##     2.5%    97.5% 
 ## 12.56536 12.72702</code></pre>
-<p>The <code>sample</code> above is not memory and computationally efficient.</p>
+<p>The result is much closer to the result from the <code>t.test</code> based on the whole data. (even <code>r</code> was set as 10)</p>
+<p>However, the above implmentation is not memory and computationally efficient because some rows in <code>df</code> are duplicated.</p>
 </div>
 <div id="with-multinomial-distribution" class="section level2">
 <h2>With multinomial distribution</h2>
-<pre class="r"><code># the frequency table of selecting 1000 items from 1:10 with replacement
-table(sample(1:10, 100, replace = TRUE))</code></pre>
-<pre><code>## 
-##  1  2  3  4  5  6  7  8  9 10 
-##  6 16  8  8  9 12  9  7 12 13</code></pre>
+<p>We could use multinomial distribution to represent the frequency of each row.</p>
+<p>Imagine that we have a dataset of original size of 100 and each subsample is of size 10</p>
+<pre class="r"><code>n = 100
+df &lt;- tibble(x = rnorm(n), y = rnorm(n))
+df1 &lt;- df %&gt;% slice(1:10)</code></pre>
+<p>We will need sample <code>n=100</code> obs from <code>df1</code> which replacement. Naively,</p>
+<pre class="r"><code>df1[sample(seq_len(nrow(df1)), n, replace = TRUE), ]</code></pre>
+<pre><code>## # A tibble: 100 x 2
+##         x      y
+##     &lt;dbl&gt;  &lt;dbl&gt;
+##  1  0.278  1.03 
+##  2  1.03  -0.608
+##  3  0.134  1.65 
+##  4 -0.364  1.31 
+##  5  0.134  1.65 
+##  6  1.03  -0.608
+##  7 -0.364  1.31 
+##  8 -0.483  0.317
+##  9 -2.03   1.05 
+## 10 -2.03   1.05 
+## # … with 90 more rows</code></pre>
+<p>But a lot of rows are duplicated!</p>
 <p>A more efficent way is to first generate the repeitions by multinomial distribution.</p>
-<pre class="r"><code>rmultinom(1, 100, rep(1, 10))</code></pre>
-<pre><code>##       [,1]
-##  [1,]   10
-##  [2,]   13
-##  [3,]   13
-##  [4,]   10
-##  [5,]    5
-##  [6,]    7
-##  [7,]    9
-##  [8,]   12
-##  [9,]   10
-## [10,]   11</code></pre>
+<pre class="r"><code>df1 %&gt;% 
+  mutate(freq = rmultinom(1, n, rep(1, n())))</code></pre>
+<pre><code>## # A tibble: 10 x 3
+##         x      y freq[,1]
+##     &lt;dbl&gt;  &lt;dbl&gt;    &lt;int&gt;
+##  1 -0.483  0.317        6
+##  2 -1.60  -0.893       13
+##  3 -2.03   1.05        15
+##  4 -0.364  1.31        14
+##  5  2.51   0.615        9
+##  6  0.812 -0.213       12
+##  7  1.03  -0.608        8
+##  8  0.134  1.65         7
+##  9  0.278  1.03         8
+## 10 -0.106 -0.446        8</code></pre>
 <p><em>Compute the mean with the frequencies</em></p>
 <pre class="r"><code>sub_dep_delay &lt;- read_csv(file_names[1], col_types = cols())$dep_delay
 # it&#39;s important to remove the missing values in this step
 sub_dep_delay &lt;- sub_dep_delay[!is.na(sub_dep_delay)]
 freqs &lt;- rmultinom(1, n, rep(1, length(sub_dep_delay)))
 sum(sub_dep_delay * freqs) / n</code></pre>
-<pre><code>## [1] 12.74517</code></pre>
+<pre><code>## [1] 11.56</code></pre>
 <p><em>Put everything back</em></p>
 <pre class="r"><code>r &lt;- 10  # r should be at least a few thousands, we are using 10 for demo
 n &lt;- nrow(flights)
@@ -1735,12 +1765,19 @@ ci_list &lt;- file_names %&gt;% map(~ {
 
 reduce(ci_list, `+`) / length(ci_list)</code></pre>
 <pre><code>##     2.5%    97.5% 
-## 12.51513 12.72324</code></pre>
+## 12.53449 12.73381</code></pre>
 </div>
 <div id="a-parallel-version-using-furrr." class="section level2">
 <h2>A parallel version using <code>furrr</code>.</h2>
 <pre class="r"><code>library(furrr)
 plan(multiprocess, workers = 5)</code></pre>
+<pre><code>## Warning: [ONE-TIME WARNING] Forked processing (&#39;multicore&#39;) is disabled
+## in future (&gt;= 1.13.0) when running R from RStudio, because it is
+## considered unstable. Because of this, plan(&quot;multicore&quot;) will fall
+## back to plan(&quot;sequential&quot;), and plan(&quot;multiprocess&quot;) will fall back to
+## plan(&quot;multisession&quot;) - not plan(&quot;multicore&quot;) as in the past. For more details,
+## how to control forked processing or not, and how to silence this warning in
+## future R sessions, see ?future::supportsMulticore</code></pre>
 <pre class="r"><code>ci_list &lt;- file_names %&gt;% future_map(~ {
   sub_dep_delay &lt;- read_csv(., col_types = cols())$dep_delay
   map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %&gt;% 
@@ -1748,7 +1785,7 @@ plan(multiprocess, workers = 5)</code></pre>
 })
 reduce(ci_list, `+`) / length(ci_list)</code></pre>
 <pre><code>##     2.5%    97.5% 
-## 12.53647 12.73906</code></pre>
+## 12.53078 12.74021</code></pre>
 </div>
 <div id="comparsion" class="section level2">
 <h2>Comparsion</h2>

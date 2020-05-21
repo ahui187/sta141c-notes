@@ -37,17 +37,25 @@ for (i in seq_len(m)) {
 }
 ```
 
-As what we have done in Chapter 6. The mean could be computed by mapreduce with
+As what we have done in Chapter 6. The mean could be computed by "mapreduce" with
 
 ```{r, message = FALSE}
 file_names <- file.path("flights", list.files("flights"))
-mean_list <- file_names %>% map(~ mean(read_csv(., col_types = cols())$dep_delay, na.rm = TRUE))
+mean_list <- file_names %>% 
+  map(~ {
+    df <- read_csv(., col_types = cols())
+    mean(df$dep_delay, na.rm = TRUE)
+  })
 (mean_dep_delay <- mean_list %>% reduce(`+`) / m)
 ```
 
 You may wonder if you could do the same for confidence intervals.
 ```{r, message = FALSE}
-ci_list <- file_names %>% map(~ t.test(read_csv(., col_types = cols())$dep_delay)$conf.int)
+ci_list <- file_names %>% 
+  map(~ {
+    df <- read_csv(., col_types = cols())
+    t.test(df$dep_delay)$conf.int
+  })
 (mean_ci <- ci_list %>% reduce(`+`) / m)
 ```
 Yeah, it gives us a result. But wait, it doesn't look right. Though the mapreduce procedure speeds up the computation, it should give similar result as if we work on the whole dataset.
@@ -69,6 +77,9 @@ It is a procedure which incorporates features of both the bootstrap and subsampl
 DiagrammeR::grViz("blb.gv", height = 300)
 ```
 
+
+Bascially, the bag of little bootstraps = subsample + bootstrap. However, for each bootstrap, we sample $n$ from $b$ with replacement instead of sample $b$ from $b$ as in oridinary bootstrap.
+
 - sample without replacement the sample $s$ times into sizes of $b$
 - for each subsample
   - resample each until sample size is $n$, $r$ times
@@ -77,43 +88,54 @@ DiagrammeR::grViz("blb.gv", height = 300)
 - take the average of the statistics
 
 
-Bascially, the bag of little bootstraps = subsample + bootstrap. However, for each bootstrap, we sample $n$ from $b$ with replacement instead of sample $b$ from $b$ as in oridinary bootstrap.
-
-
 ## A naive (single core) implementation
 
 ```{r, message = FALSE}
-r <- 10  # r should be at least a few thousands, we are using 10 for demo
+r <- 10  # r should be at least a few thousands, say 10000, we are using 10 for demo
 n <- nrow(flights)
 
-each_boot <- function(i, data) {
-  mean(sample(data, n, replace = TRUE), na.rm = TRUE)
-}
-
 ci_list <- file_names %>% map(~ {
-  sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
-  map_dbl(seq_len(r), each_boot, data = sub_dep_delay) %>% 
+  df <- read_csv(., col_types = cols()) %>%
+    select(dep_delay)
+  seq_len(r) %>%
+    map_dbl(~{
+      df <- df[sample(seq_len(nrow(df)), n, replace = TRUE), ]
+      mean(df$dep_delay, na.rm = TRUE)
+    }) %>%
     quantile(c(0.025, 0.975))
 })
 
 reduce(ci_list, `+`) / length(ci_list)
 ```
 
+The result is much closer to the result from the `t.test` based on the whole data. (even `r` was set as 10)
 
-The `sample` above is not memory and computationally efficient.
+However, the above implmentation is not memory and computationally efficient because some rows in `df` are duplicated.
 
 
 ## With multinomial distribution
 
+We could use multinomial distribution to represent the frequency of each row.
+
+Imagine that we have a dataset of original size of 100 and each subsample is of size 10
 ```{r}
-# the frequency table of selecting 1000 items from 1:10 with replacement
-table(sample(1:10, 100, replace = TRUE))
+n = 100
+df <- tibble(x = rnorm(n), y = rnorm(n))
+df1 <- df %>% slice(1:10)
 ```
+
+We will need sample `n=100` obs from `df1` which replacement. Naively,
+```{r}
+df1[sample(seq_len(nrow(df1)), n, replace = TRUE), ]
+```
+
+But a lot of rows are duplicated!
 
 A more efficent way is to first generate the repeitions by multinomial distribution.
 
 ```{r}
-rmultinom(1, 100, rep(1, 10))
+df1 %>% 
+  mutate(freq = rmultinom(1, n, rep(1, n())))
 ```
 
 *Compute the mean with the frequencies*
