@@ -1,5 +1,5 @@
 ---
-title: "Bootstrap"
+title: "Bag of little Bootstraps"
 output: 
   html_document: 
     toc: yes
@@ -41,27 +41,32 @@ As what we have done in Chapter 6. The mean could be computed by "mapreduce" wit
 
 ```{r, message = FALSE}
 file_names <- file.path("flights", list.files("flights"))
-mean_list <- file_names %>% 
-  map(~ {
+cor_list <- file_names %>% 
+  map_dbl(~ {
     df <- read_csv(., col_types = cols())
-    mean(df$dep_delay, na.rm = TRUE)
+    cor(df$dep_delay, df$arr_delay, use = "pairwise.complete.obs")
   })
-(mean_dep_delay <- mean_list %>% reduce(`+`) / m)
+(mean_cor <- cor_list %>% reduce(`+`) / m)
 ```
+
+```{r}
+cor(flights$dep_delay, flights$arr_delay, use = "pairwise.complete.obs")
+```
+
 
 You may wonder if you could do the same for confidence intervals.
 ```{r, message = FALSE}
 ci_list <- file_names %>% 
   map(~ {
     df <- read_csv(., col_types = cols())
-    t.test(df$dep_delay)$conf.int
+    cor.test(df$dep_delay, df$arr_delay)$conf.int
   })
 (mean_ci <- ci_list %>% reduce(`+`) / m)
 ```
 Yeah, it gives us a result. But wait, it doesn't look right. Though the mapreduce procedure speeds up the computation, it should give similar result as if we work on the whole dataset.
 
 ```{r}
-t.test(flights$dep_delay)$conf.int
+cor.test(flights$dep_delay, flights$arr_delay)$conf.int
 ```
 
 
@@ -83,7 +88,7 @@ Bascially, the bag of little bootstraps = subsample + bootstrap. However, for ea
 - sample without replacement the sample $s$ times into sizes of $b$
 - for each subsample
   - resample each until sample size is $n$, $r$ times
-  - compute the bootstrap statistic (e,g., the mean) for each bootstrap sample
+  - compute the bootstrap statistic (e,g., the mean of a variable, or cor between two variables) for each bootstrap sample
   - compute the statistic (e.g., confidence interval) from the bootstrap statistics
 - take the average of the statistics
 
@@ -96,11 +101,11 @@ n <- nrow(flights)
 
 ci_list <- file_names %>% map(~ {
   df <- read_csv(., col_types = cols()) %>%
-    select(dep_delay)
+    select(dep_delay, arr_delay)
   seq_len(r) %>%
     map_dbl(~{
       df <- df[sample(seq_len(nrow(df)), n, replace = TRUE), ]
-      mean(df$dep_delay, na.rm = TRUE)
+      cor(df$dep_delay, df$arr_delay, use = "pairwise.complete.obs")
     }) %>%
     quantile(c(0.025, 0.975))
 })
@@ -110,10 +115,10 @@ reduce(ci_list, `+`) / length(ci_list)
 
 The result is much closer to the result from the `t.test` based on the whole data. (even `r` was set as 10)
 
-However, the above implmentation is not memory and computationally efficient because some rows in `df` are duplicated.
+However, the above implementation is not memory and computationally efficient because some rows in `df` are duplicated.
 
 
-## With multinomial distribution
+## A more efficient implmentation with multinomial distribution
 
 We could use multinomial distribution to represent the frequency of each row.
 
@@ -124,45 +129,100 @@ df <- tibble(x = rnorm(n), y = rnorm(n))
 df1 <- df %>% slice(1:10)
 ```
 
-We will need sample `n=100` obs from `df1` which replacement. Naively,
+We will need sample `n` obs from `df1` which replacement. Naively,
 ```{r}
 df1[sample(seq_len(nrow(df1)), n, replace = TRUE), ]
 ```
 
 But a lot of rows are duplicated!
 
-A more efficent way is to first generate the repeitions by multinomial distribution.
+A more efficient way is to first generate the repetitions by multinomial distribution.
 
 ```{r}
 df1 %>% 
   mutate(freq = rmultinom(1, n, rep(1, n())))
 ```
 
-*Compute the mean with the frequencies*
+*Compute the statistic with the frequencies*
 
 ```{r, message = FALSE}
-sub_dep_delay <- read_csv(file_names[1], col_types = cols())$dep_delay
-# it's important to remove the missing values in this step
-sub_dep_delay <- sub_dep_delay[!is.na(sub_dep_delay)]
-freqs <- rmultinom(1, n, rep(1, length(sub_dep_delay)))
-sum(sub_dep_delay * freqs) / n
+n <- nrow(flights)
+df <- read_csv(file_names[1], col_types = cols()) %>% 
+  select(dep_delay, arr_delay) %>% 
+  drop_na() %>%
+  mutate(freq = rmultinom(1, n, rep(1, n())))
+df
 ```
+
+How do you calculate the mean based on frequencies? (weighted mean!)
+```{r}
+with(df, weighted.mean(dep_delay, freq, na.rm = TRUE))
+```
+
+What if we want weighted correlation between two variables? Base R doesn't provide function to compute weighted correlations. Let's do it manually.
+
+Recall that ordinary correlation is
+$$
+r = \frac{\sum (x_i-\bar x) (y_i-\bar y)}{\sqrt{\sum (x_i-\bar x)^2  \sum (y_i-\bar y)^2 }}
+$$
+But now some $(x_i, y_i)$ are repeated, to be more precise, each of them repeated $w_i$ times. So the formula is now
+$$
+r = \frac{\sum w_i (x_i-\bar x_w) (y_i-\bar y_w)}{\sqrt{\sum w_i (x_i-\bar x_w)^2  \sum w_i (y_i-\bar y_w)^2 }}
+$$
+where $\bar x_w = \sum(w_i x_i)/ n$ and $\bar y_w = \sum(w_i y_i)/ n$.
+
+Of course, it is not computationally efficient, with some algebra, the computational formula is derived
+
+$$
+r = \frac{
+  \sum w_i x_i y_i-  (\sum w_i x_i \sum w_i y_i)/n
+}{
+  \sqrt{\left[\sum w_i x_i^2- (\sum w_i x_i)/n \right]\left[ \sum w_i y_i^2-  (\sum w_i y_i)/n \right] }
+}
+$$
+where $n = \sum w_i$.
+
+```{r}
+weighted_cor <- function(x, y, weights) {
+  n <- sum(weights)
+  sumx <- sum(weights * x)
+  sumy <- sum(weights * y)
+  sxx <- sum(weights* x^2) - sumx^2 / n
+  syy <- sum(weights* y^2) - sumy^2 / n
+  sxy <- sum(weights* x * y) - sumx * sumy / n
+  sxy / sqrt(sxx * syy)
+}
+```
+PS: there are still ways to improve it.
+
+
+Compare it with the duplicated data to make sure that `weighted_cor` works
+```{r}
+df %>% 
+  slice(rep(seq_len(n()), freq)) %>%
+  summarise(cor(dep_delay, arr_delay))
+```
+
+```{r}
+with(df, weighted_cor(dep_delay, arr_delay, freq))
+```
+
 
 *Put everything back*
 
 ```{r, message = FALSE}
-r <- 10  # r should be at least a few thousands, we are using 10 for demo
+r <- 100  # r should be at least a few thousands, we are using 100 for demo
 n <- nrow(flights)
 
-each_boot2 <- function(i, data) {
-  non_missing_data <- data[!is.na(data)]
-  freqs <- rmultinom(1, n, rep(1, length(non_missing_data)))
-  sum(non_missing_data * freqs) / n
-}
 
 ci_list <- file_names %>% map(~ {
-  sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
-  map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %>% 
+  df <- read_csv(., col_types = cols()) %>% 
+    select(dep_delay, arr_delay) %>% 
+    drop_na()
+  map_dbl(seq_len(r), ~{
+    freq <- rmultinom(1, n, rep(1, nrow(df)))
+    unclass(with(df, weighted_cor(dep_delay, arr_delay, freq)))
+  }) %>% 
     quantile(c(0.025, 0.975))
 })
 
@@ -175,91 +235,20 @@ reduce(ci_list, `+`) / length(ci_list)
 
 ```{r, message = FALSE}
 library(furrr)
-plan(multiprocess, workers = 5)
+plan(multiprocess, workers = 4)
 ```
 
 ```{r, message = FALSE}
 ci_list <- file_names %>% future_map(~ {
-  sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
-  map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %>% 
-    quantile(c(0.025, 0.975))
-})
-reduce(ci_list, `+`) / length(ci_list)
-```
-
-
-## Comparsion
-
-
-```{r, eval = FALSE}
-r <- 500
-naive <- function() {
-  file_names %>% map(~ {
-    sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
-    map_dbl(seq_len(r), each_boot, data = sub_dep_delay) %>% 
-      quantile(c(0.025, 0.975))
-  })
-}
-improve <- function() {
-  file_names %>% map(~ {
-    sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
-    map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %>% 
-      quantile(c(0.025, 0.975))
-  })
-}
-multi_core <- function() {
-  file_names %>% future_map(~ {
-    sub_dep_delay <- read_csv(., col_types = cols())$dep_delay
-    map_dbl(seq_len(r), each_boot2, data = sub_dep_delay) %>% 
-      quantile(c(0.025, 0.975))
-  })
-}
-```
-
-```{r, eval = FALSE, message = FALSE}
-# system.time(naive())  # [skipped] take forver
-system.time(improve())  # 4x seconds
-system.time(multi_core()) # 1x seconds
-```
-
-
-# Another example
-
-We want to compute a confidence interval between the correlation of `dep_delay` and `arr_delay`
-
-```{r}
-cor.test(flights$dep_delay, flights$arr_delay)
-```
-
-
-```{r, message = FALSE}
-r <- 100  # in practice, r shoule be at least 1000 - 10000
-
-boot_cor <- function(i, data) {
-  # this function bootstrap data and compute the correlation
-  b <- nrow(data)
-  weights <- rmultinom(1, n, rep(1, b))
-  x <- data$arr_delay
-  y <- data$dep_delay
-  mux <- sum(weights * x) / n
-  muy <- sum(weights * y) / n
-  sxx <- sum(weights * (x - mux)^2)
-  syy <- sum(weights * (y - muy)^2)
-  sxy <- sum(weights * (y - muy) * (x - mux))
-  sxy / sqrt(sxx * syy)
-}
-```
-
-
-```{r, eval = FALSE, message = FALSE}
-ci_list <- file_names %>% future_map(~ {
-  data <- read_csv(., col_types = cols()) %>%
-    select(arr_delay, dep_delay) %>% 
+  df <- read_csv(., col_types = cols()) %>% 
+    select(dep_delay, arr_delay) %>% 
     drop_na()
-  map_dbl(seq_len(r), boot_cor, data = data) %>% 
+  map_dbl(seq_len(r), ~{
+    freq <- rmultinom(1, n, rep(1, nrow(df)))
+    unclass(with(df, weighted_cor(dep_delay, arr_delay, freq)))
+  }) %>% 
     quantile(c(0.025, 0.975))
 })
 
 reduce(ci_list, `+`) / length(ci_list)
 ```
-
