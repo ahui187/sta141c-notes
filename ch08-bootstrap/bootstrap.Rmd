@@ -61,9 +61,6 @@ where $\bar{\hat \alpha}^*$ is the average of $\hat \alpha^{*r}$'s.
 knitr::include_graphics("bootstrap_world.png")
 ```
 
-```{r}
-library(rsample)
-```
 
 ## A example
 
@@ -79,21 +76,17 @@ To get the "classical" confidence interval (by Fisher's transformation)
 with(mtcars, cor.test(mpg, hp))
 ```
 
-
-```{r}
-with(mtcars, cor.test(mpg, hp)) %>%
-  tidy()
-```
-
 Use bootstrap to obtain a confidence interval
-
-```{r}
-boots <- bootstraps(mtcars, times = 10000)
-```
 
 # Classical boostrap confidence interval
 
 Bootstrap is used to obtain standard errors of an estimate.
+
+
+```{r}
+library(rsample)
+boots <- bootstraps(mtcars, times = 10000)
+```
 
 ```{r}
 se <- boots %>%
@@ -112,11 +105,26 @@ with(mtcars, cor(mpg, hp)) + 1.96 * c(-1, 1) * se
 where `qnorm(0.975)` is roughly 1.96.
 
 
+If you want to do it manually
+
+```{r}
+se <- map_dbl(seq_len(10000), ~{
+    n <- nrow(mtcars)
+    index <- sample.int(n, n, replace = TRUE)
+    x <- mtcars$mpg[index]
+    y <- mtcars$hp[index]
+    cor(x, y)
+}) %>% sd()
+
+with(mtcars, cor(mpg, hp)) + 1.96 * c(-1, 1) * se
+```
+
+
 ### Bootstrap Percentile confidence interval
 
-- Consider the 2.5th and 97.5 percentile of $\hat \alpha^{*1},\ldots,\hat \alpha^{*B}$
+- Consider the 2.5th and 97.5th percentile of $\hat \alpha^{*1},\ldots,\hat \alpha^{*B}$
 - The above interval is called a 95% Bootstrap Percentile confidence interval.
-- It usually gives better results for heavily skeweddistributions.
+- It usually gives better results for heavily skewed distributions of statistics.
 
 ```{r}
 boots %>%
@@ -139,7 +147,6 @@ First thing first, we don't want to use `bootstraps()` function for parallel pro
 library(parallel)
 cl <- makeCluster(4)
 ```
-
 
 ```{r}
 B <- 10000
