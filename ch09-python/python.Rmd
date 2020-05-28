@@ -28,7 +28,7 @@ library(reticulate)
 Display python environment detected. You will be prompted to install `miniconda` if no suitable python is detected.
 
 ```{r, eval = FALSE}
-py_config()
+py_discover_config()
 ```
 
 In this class, we are going to focus on `miniconda.` If your system has another workable python environment. You will need to manually install `miniconda` with
@@ -43,11 +43,13 @@ use_miniconda()  # only needed if your computer has multiple installations of py
 
 Visit [reticulate](https://rstudio.github.io/reticulate/articles/versions.html) website if you want to configure R to use different version of python then miniconda.
 
+
 ## Ways to use python
 
 There are a variety of ways to integrate Python code into your R projects:
 
 - Python in R Markdown (You won't be able to run selected test inline as in R markdown, but fortunate that we could run the output in the console.)
+
 
 ```{python}
 import random
@@ -112,6 +114,7 @@ https://www.pyscoop.com/learn-python-in-10-minutes/
 
 ## Type conversions
 
+
 https://rstudio.github.io/reticulate/#type-conversions
 
 By default when Python objects are returned to R they are converted to their equivalent R types.
@@ -146,7 +149,7 @@ Let's check another numpy example.
 np <- import("numpy", convert = FALSE)
 
 # do some array manipulations with NumPy
-a <- np$array(c(1:4))
+a <- np$array(1:4)
 sum <- a$cumsum()
 
 # convert to R explicitly at the end
@@ -156,11 +159,9 @@ py_to_r(sum)
 R Objects are converted to Python objects when they are passed to Python functions.
 
 ```{python}
-import sys
 def abssum(x):
     print("received a {} object\n".format(type(x)))
     return sum((abs(z) for z in x))
-
 ```
 
 ```{r}
@@ -171,7 +172,7 @@ py$abssum(x)
 
 ## scikit-learn
 
-`scikit-learn` is one a common package for doing machine learning. It could be installed with
+`scikit-learn` is a popular package for doing machine learning. It could be installed with
 ```{r, eval = FALSE}
 # the scikit-learn from conda is not compatabble with reticulate, we use the one from pip instead
 py_install("scikit-learn", pip = TRUE)
@@ -188,7 +189,9 @@ To use it,
 ```{python}
 X = np.array([[1, 1], [1, 2], [2, 2], [2, 3]])
 # y = 1 * x_0 + 2 * x_1 + e
-y = np.dot(X, np.array([1, 2])) + np.random.normal(0, 0.1, X.shape[0])
+beta = np.array([1, 2])
+e = np.random.normal(0, 0.1, X.shape[0])
+y = 3.14 + X.dot(beta) + e
 
 lr = LinearRegression()
 lr.fit(X, y)
@@ -199,6 +202,7 @@ print(lr.intercept_)
 ```{python}
 Xtest = np.array([[1, 3]])
 lr.predict(Xtest)
+# double check
 lr.intercept_ + Xtest.dot(lr.coef_)
 ```
 
@@ -206,7 +210,9 @@ lr.intercept_ + Xtest.dot(lr.coef_)
 How about passing R dataframes to it? Say we want to regress `mpg ~ hp * wt` of `mtcars`.
 
 Method 1: prepare a function in python first
+
 ```{python}
+from sklearn.linear_model import LinearRegression
 def pylm(X, y):
   lr = LinearRegression()
   lr.fit(X, y)
@@ -220,7 +226,28 @@ def pylm(X, y):
 X <- model.matrix(~ -1 + hp * wt, mtcars)
 y <- mtcars$mpg
 fit <- py$pylm(X, y)
-Xtest <- model.matrix(~ -1 + hp * wt, data.frame(hp = 1, wt = 2))
+Xtest <- model.matrix(~ -1 + hp * wt, 
+                      data.frame(hp = 1, wt = 2))
 fit$predict(Xtest)
 ```
 
+
+Method 2: Import python module directly.
+
+```{r}
+sklearn <- import("sklearn")
+LinearRegression <- sklearn$linear_model$LinearRegression
+
+X <- model.matrix(~ -1 + hp * wt, mtcars)
+y <- mtcars$mpg
+lr <- LinearRegression()
+lr$fit(X, y)
+
+lr$coef_
+```
+
+```{r}
+Xtest <- model.matrix(~ -1 + hp * wt, 
+                      data.frame(hp = 1, wt = 2))
+lr$predict(Xtest)
+```
