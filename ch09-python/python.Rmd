@@ -3,6 +3,8 @@ title: "Python interoperability"
 output: 
   html_document: 
     toc: yes
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -45,18 +47,18 @@ Visit [reticulate](https://rstudio.github.io/reticulate/articles/versions.html) 
 
 There are a variety of ways to integrate Python code into your R projects:
 
-- Python in R Markdown 
+- Python in R Markdown (You won't be able to run selected test inline as in R markdown, but fortunate that we could run the output in the console.)
 
 ```{python}
 import random
 x = random.random()
+x
 ```
 
 ```{r}
 # to access Python objects in R
 py$x
 ```
-
 
 - Importing Python module
 
@@ -87,14 +89,15 @@ builtins$len(a)
 
 
 ```{r}
-source_python("script.py", envir = NULL)
-py$z
-```
-
-```{r}
-# I personally don't recommand it
 source_python("script.py")
 z
+```
+
+
+```{r}
+# personally, I recommend using `envir = NULL` so no implicit copying is done
+source_python("script.py", envir = NULL)
+py$z
 ```
 
 
@@ -157,11 +160,67 @@ import sys
 def abssum(x):
     print("received a {} object\n".format(type(x)))
     return sum((abs(z) for z in x))
+
 ```
 
 ```{r}
 x <- rnorm(10)
 # x is implicitly to a native Python list
 py$abssum(x)
+```
+
+## scikit-learn
+
+`scikit-learn` is one a common package for doing machine learning. It could be installed with
+```{r, eval = FALSE}
+# the scikit-learn from conda is not compatabble with reticulate, we use the one from pip instead
+py_install("scikit-learn", pip = TRUE)
+```
+
+
+```{python}
+import numpy as np
+from sklearn.linear_model import LinearRegression
+```
+
+
+To use it,
+```{python}
+X = np.array([[1, 1], [1, 2], [2, 2], [2, 3]])
+# y = 1 * x_0 + 2 * x_1 + e
+y = np.dot(X, np.array([1, 2])) + np.random.normal(0, 0.1, X.shape[0])
+
+lr = LinearRegression()
+lr.fit(X, y)
+print(lr.coef_)
+print(lr.intercept_)
+```
+
+```{python}
+Xtest = np.array([[1, 3]])
+lr.predict(Xtest)
+lr.intercept_ + Xtest.dot(lr.coef_)
+```
+
+
+How about passing R dataframes to it? Say we want to regress `mpg ~ hp * wt` of `mtcars`.
+
+Method 1: prepare a function in python first
+```{python}
+def pylm(X, y):
+  lr = LinearRegression()
+  lr.fit(X, y)
+  return lr
+
+```
+
+
+```{r}
+# we do not need intercept
+X <- model.matrix(~ -1 + hp * wt, mtcars)
+y <- mtcars$mpg
+fit <- py$pylm(X, y)
+Xtest <- model.matrix(~ -1 + hp * wt, data.frame(hp = 1, wt = 2))
+fit$predict(Xtest)
 ```
 
