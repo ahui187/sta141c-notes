@@ -38,7 +38,7 @@ reticulate::install_miniconda()
 and specify to use `miniconda` after loading `reticulate`, like this
 ```{r, eval = FALSE}
 library(reticulate)
-use_miniconda()  # only needed if your computer has multiple installations of python.
+use_miniconda(required = TRUE)  # only needed if your computer has multiple installations of python.
 ```
 
 Visit [reticulate](https://rstudio.github.io/reticulate/articles/versions.html) website if you want to configure R to use different version of python then miniconda.
