@@ -76,23 +76,6 @@ knitr::include_graphics("fig18_6.png")
 ```
 
 
-## Convolutional NN
-
-It is a special layer for handling images. CNNs consist of two special types of layers - "convolve" and "pool".
-
-The "convolve" layer applies a bunch of filters to the images.
-
-```{r echo=FALSE, out.width='70%'}
-knitr::include_graphics("convolve.png")
-```
-
-The "pool" layer is used to reduce the (filtered) image pixel sizes.
-```{r echo=FALSE, out.width='70%'}
-knitr::include_graphics("pool.png")
-```
-
-
-
 ## Dropout
 
 Dropout is a technique used to avoid overfitting on neural networks.
@@ -154,12 +137,10 @@ for (i in 1:25) plot_mnist(mnist$train, i)
 
 ```{r}
 # The data, shuffled and split between train and test sets
-x_train <- mnist$train$x
+x_train <- mnist$train$x * 1.0
 y_train <- mnist$train$y
-x_test <- mnist$test$x
+x_test <- mnist$test$x * 1.0
 y_test <- mnist$test$y
-storage.mode(x_train) <- "double"
-storage.mode(x_test) <- "double"
 
 y_train <- to_categorical(y_train, 10)
 y_test <- to_categorical(y_test, 10)
@@ -193,7 +174,7 @@ See https://en.wikipedia.org/wiki/Stochastic_gradient_descent for some descripti
 history <- mnist_model %>% fit(
   x_train,
   y_train,
-  epochs = 5, # for testing
+  epochs = 15,
   batch_size = 128,
   validation_split = 0.2
 )
@@ -217,6 +198,22 @@ See https://keras.rstudio.com/articles/getting_started.html for more examples
 
 
 # MNIST with Convolutional Networks
+
+## Convolutional NN
+
+It is a special layer for handling images. CNNs consist of two special types of layers - "convolve" and "pool".
+
+The "convolve" layer applies a bunch of filters to the images.
+
+```{r echo=FALSE, out.width='70%'}
+knitr::include_graphics("convolve.png")
+```
+
+The "pool" layer is used to reduce the (filtered) image pixel sizes.
+```{r echo=FALSE, out.width='70%'}
+knitr::include_graphics("pool.png")
+```
+
 
 ## Google computer engine and GPU learning
 
