@@ -42,6 +42,7 @@
 | 05-19               | [bootstrap](ch08-bootstrap/bootstrap.Rmd)       | [bootstrap](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch08-bootstrap/bootstrap.html) |
 | 05-21, 05-26        | [blb](ch08-bootstrap/blb.Rmd)                   | [blb](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch08-bootstrap/blb.html)             |
 | 05-28               | [python](ch09-python/python.Rmd)                | [python](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch09-python/python.html)          |
+| 06-02               | [keras](ch10-deep-learning/keras.Rmd)           | [keras](https://ucdavis-sta141c-sq-2020.github.io/sta141c-notes/ch10-deep-learning/keras.html)     |
 
 ## Links
 
