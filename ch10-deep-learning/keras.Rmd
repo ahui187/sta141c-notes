@@ -249,7 +249,7 @@ model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accur
 model.fit(x_train, y_train, batch_size=128, epochs=15, validation_split=0.2)
 ```
 
-PS: due to an issue of RStudo, we won't be able to see the progress bar while fitting the model.
+PS: due to an [issue](https://github.com/rstudio/reticulate/pull/774) of reticulate, we won't be able to see the progress bar while fitting the model.
 
 
 # MNIST with Convolutional Networks
