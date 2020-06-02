@@ -3,6 +3,8 @@ title: "Tensorflow"
 output: 
   html_document: 
     toc: yes
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ## Neural Networks and Deep Learning
@@ -142,6 +144,7 @@ y_train <- mnist$train$y
 x_test <- mnist$test$x * 1.0
 y_test <- mnist$test$y
 
+# convert class vectors to binary class matrices
 y_train <- to_categorical(y_train, 10)
 y_test <- to_categorical(y_test, 10)
 ```
@@ -149,8 +152,8 @@ y_test <- to_categorical(y_test, 10)
 
 ```{r}
 mnist_model <- keras_model_sequential() %>%
-  layer_flatten(input_shape = c(28, 28)) %>%
-  layer_lambda(function(x) x / 256) %>%
+  layer_flatten(input_shape = c(28, 28)) %>%  # because they are images
+  layer_lambda(function(x) x / 256) %>%       # scale to 0 and 1
   layer_dense(units = 256, activation = "relu") %>%
   layer_dropout(rate = 0.4) %>%
   layer_dense(units = 128, activation = "relu") %>%
@@ -171,7 +174,7 @@ mnist_model %>% compile(
 See https://en.wikipedia.org/wiki/Stochastic_gradient_descent for some descriptions of the optimizers.
 
 ```{r, eval = FALSE}
-history <- mnist_model %>% fit(
+mnist_model %>% fit(
   x_train,
   y_train,
   epochs = 15,
@@ -195,6 +198,58 @@ for (i in seq_along(wrong_idx)) plot_mnist(mnist$test, wrong_idx[i])
 
 
 See https://keras.rstudio.com/articles/getting_started.html for more examples
+
+
+# MNIST in python
+
+It is of course possible to run the keras model in python
+
+```{python, eval = FALSE}
+import numpy as np
+from tensorflow import keras
+from tensorflow.keras import layers
+```
+
+Cast the R's arrays to python numpy arrays.
+```{python, eval = FALSE}
+mnist = r.mnist
+x_train = mnist["train"]["x"].astype("float64")
+y_train = mnist["train"]["y"]
+x_test = mnist["test"]["x"].astype("float64")
+y_test = mnist["test"]["y"]
+```
+
+```{python, eval = FALSE}
+# convert class vectors to binary class matrices
+y_train = keras.utils.to_categorical(y_train, 10)
+y_test = keras.utils.to_categorical(y_test, 10)
+```
+
+```{python, eval = FALSE}
+model = keras.Sequential(
+    [
+        layers.Flatten(input_shape = [28, 28]),
+        layers.Lambda(lambda x: x / 256.0),
+        layers.Dense(256, activation="relu"),
+        layers.Dropout(0.4),
+        layers.Dense(128, activation="relu"),
+        layers.Dropout(0.3),
+        layers.Dense(10, activation="softmax"),
+    ]
+)
+```
+
+
+```{python, eval = FALSE}
+model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+```
+
+
+```{python, eval = FALSE}
+model.fit(x_train, y_train, batch_size=128, epochs=15, validation_split=0.2)
+```
+
+PS: due to an issue of RStudo, we won't be able to see the progress bar while fitting the model.
 
 
 # MNIST with Convolutional Networks
