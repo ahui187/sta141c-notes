@@ -32,6 +32,7 @@ output:
 | 05-21, 05-26        | [blb](ch08-bootstrap/blb.Rmd)             | [blb]
 | 05-28               | [python](ch09-python/python.Rmd)             | [python]
 | 06-02               | [keras](ch10-deep-learning/keras.Rmd)             | [keras]
+| 06-04               | [spark](ch11-spark)             |
 
 
 [introduction]: README.md
